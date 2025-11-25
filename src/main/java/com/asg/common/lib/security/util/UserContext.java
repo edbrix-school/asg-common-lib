@@ -53,6 +53,11 @@ public class UserContext {
         return details != null ? details.getDocumentId() : null;
     }
 
+    public static String getUserRole() {
+        CustomAuthDetails details = getCurrentUser();
+        return details != null ? details.getUserRole() : null;
+    }
+
     public static void clear() {
         userContext.remove();
     }

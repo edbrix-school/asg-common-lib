@@ -27,14 +27,15 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
-            String actionRequested = request.getHeader("actionRequested");
-            String documentId = request.getHeader("documentId");
-            String userName = request.getHeader("userName");
-            String userPoidStr = request.getHeader("userPoid");
-            String userId = request.getHeader("userId");
-            String groupPoidStr = request.getHeader("groupPoid");
-            String companyPoidStr = request.getHeader("companyPoid");
-            String userEmail = request.getHeader("userEmail");
+            String actionRequested = request.getHeader("X-Action-Requested");
+            String documentId = request.getHeader("X-Document-Id");
+            String userName = request.getHeader("X-User-Name");
+            String userPoidStr = request.getHeader("X-User-Poid");
+            String userId = request.getHeader("X-User-Id");
+            String groupPoidStr = request.getHeader("X-Group-Poid");
+            String companyPoidStr = request.getHeader("X-Company-Poid");
+            String userEmail = request.getHeader("X-User-Email");
+            String userRole = request.getHeader("X-User-Role");
 
             if (StringUtils.hasText(userId)) {
                 Long userPoid = StringUtils.hasText(userPoidStr) ? Long.parseLong(userPoidStr) : null;
@@ -50,6 +51,7 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
                         .groupPoid(groupPoid)
                         .companyPoid(companyPoid)
                         .userEmail(userEmail)
+                        .userRole(userRole)
                         .build();
 
                 UserContext.setCurrentUser(authDetails);

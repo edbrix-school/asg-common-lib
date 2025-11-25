@@ -9,6 +9,7 @@ public class CustomAuthDetails {
     private Long groupPoid;
     private Long companyPoid;
     private String userEmail;
+    private String userRole;
 
     public CustomAuthDetails() {
     }
@@ -77,6 +78,14 @@ public class CustomAuthDetails {
         this.userEmail = userEmail;
     }
 
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(String userRole) {
+        this.userRole = userRole;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -90,6 +99,7 @@ public class CustomAuthDetails {
         private Long groupPoid;
         private Long companyPoid;
         private String userEmail;
+        private String userRole;
 
         public Builder actionRequested(String actionRequested) {
             this.actionRequested = actionRequested;
@@ -131,6 +141,11 @@ public class CustomAuthDetails {
             return this;
         }
 
+        public Builder userRole(String userRole) {
+            this.userRole = userRole;
+            return this;
+        }
+
         public CustomAuthDetails build() {
             CustomAuthDetails details = new CustomAuthDetails();
             details.setActionRequested(this.actionRequested);
@@ -141,6 +156,7 @@ public class CustomAuthDetails {
             details.setGroupPoid(this.groupPoid);
             details.setCompanyPoid(this.companyPoid);
             details.setUserEmail(this.userEmail);
+            details.setUserRole(this.userRole);
             return details;
         }
     }
