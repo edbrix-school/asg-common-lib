@@ -19,13 +19,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class AsgCommonInterceptor extends OncePerRequestFilter {
     
     private static final Logger logger = LoggerFactory.getLogger(AsgCommonInterceptor.class);
-    
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-
         try {
             String actionRequested = request.getHeader("X-Action-Requested");
             String documentId = request.getHeader("X-Document-Id");
@@ -66,4 +65,6 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
             UserContext.clear();
         }
     }
+
+
 }
