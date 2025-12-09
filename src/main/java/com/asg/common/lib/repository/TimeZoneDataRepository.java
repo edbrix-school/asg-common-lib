@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TimeZoneRepository extends JpaRepository<TimeZoneEntity, Long> {
+public interface TimeZoneDataRepository extends JpaRepository<TimeZoneEntity, Long> {
     @Query("SELECT new com.asg.common.lib.dto.DropdownDto(CAST(t.timezoneId AS long), t.timezoneCode) " +
             "FROM TimeZoneEntity t WHERE t.status = 'Y' ORDER BY t.timezoneCode")
     List<DropdownDto> findActiveTimezoneDropdown();

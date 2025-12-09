@@ -3,7 +3,7 @@ package com.asg.common.lib.service;
 import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.entity.TimeZoneEntity;
 import com.asg.common.lib.exception.ResourceNotFoundException;
-import com.asg.common.lib.repository.TimeZoneRepository;
+import com.asg.common.lib.repository.TimeZoneDataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.dialect.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,13 +18,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class LovService {
+public class LovDataService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private TimeZoneRepository timeZoneRepository;
+    private TimeZoneDataRepository timeZoneDataRepository;
 
     // ================================
     // Generic LOV method
@@ -220,7 +220,7 @@ public class LovService {
             String filter, int pageNumber, int pageSize,
             String sortBy, String sortDir) {
 
-        List<TimeZoneEntity> allTimezones = timeZoneRepository.findAll();
+        List<TimeZoneEntity> allTimezones = timeZoneDataRepository.findAll();
 
         List<TimeZoneEntity> activeTimezones = allTimezones.stream()
                 .filter(tz -> "Y".equals(tz.getStatus()))
@@ -320,6 +320,8 @@ public class LovService {
 
     public LovGetListDto getDetailsByPoidAndLovName(Long poid, String lovName) {
         log.info("poid : {}, lovName : {}", poid, lovName);
+        if (poid == null || lovName == null || lovName.isEmpty())
+            return new LovGetListDto();
 
         LovGetListDto dto = new LovGetListDto();
         Map<String, Object> listValue = this.getLovList("", 0L, 0L, 0L,
@@ -340,6 +342,9 @@ public class LovService {
     public LovGetListDto getDetailsByCodeAndLovName(String code, String lovName) {
 
         log.info("code : {}, lovName : {}", code, lovName);
+        if (code == null || code.isEmpty() || lovName == null || lovName.isEmpty())
+            return new LovGetListDto();
+
         LovGetListDto dto = new LovGetListDto();
         Map<String, Object> listValue = this.getLovList("", 0L, 0L, 0L,
                 lovName,
@@ -351,9 +356,7 @@ public class LovService {
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
 
             if (lovGetListDtos != null) {
-
                 dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElseThrow(() -> new ResourceNotFoundException("Master Data", "CODE", code));
-
             }
         }
         return dto;
