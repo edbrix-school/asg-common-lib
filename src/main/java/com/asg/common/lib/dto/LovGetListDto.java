@@ -14,4 +14,6 @@ public class LovGetListDto {
     private Long value;
     private String description;
     private Integer seqNo;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String users;
 }
