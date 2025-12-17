@@ -67,6 +67,7 @@ public class LovDataService {
                         return response;
                     }
                     List<LovGetListDto> result = new ArrayList<>();
+                    boolean includeUsers = "USER_ROLES".equalsIgnoreCase(lovName);
                     while (rs.next()) {
                         LovGetListDto dto = new LovGetListDto();
                         dto.setPoid(rs.getLong("POID"));
@@ -88,6 +89,9 @@ public class LovDataService {
                             dto.setSeqNo(rs.getInt("SEQNO"));
                         } catch (SQLException ignored) {
                             dto.setSeqNo(0);
+                        }
+                        if (includeUsers) {
+                            dto.setUsers(rs.getString("USERS"));
                         }
                         result.add(dto);
                     }
@@ -114,7 +118,8 @@ public class LovDataService {
                                         (dto.getValue() != null && dto.getPoid().toString().toLowerCase().contains(filterLower)) ||
                                                 (dto.getCode() != null && dto.getCode().toLowerCase().contains(filterLower)) ||
                                                 (dto.getDescription() != null && dto.getDescription().toLowerCase().contains(filterLower)) ||
-                                                (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)))
+                                                (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)) ||
+                                                (dto.getUsers() != null && dto.getUsers().toLowerCase().contains(filterLower)))
                                 .collect(Collectors.toList());
                     }
                     // Sorting
@@ -333,7 +338,10 @@ public class LovDataService {
             @SuppressWarnings("unchecked")
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
             if (lovGetListDtos != null) {
-                dto = lovGetListDtos.stream().filter(x -> x.getPoid().equals(poid)).findAny().orElse(new LovGetListDto(poid, null, null, null, null, null));
+                dto = lovGetListDtos.stream()
+                        .filter(x -> x.getPoid().equals(poid))
+                        .findAny()
+                        .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
             }
         }
         return dto;
