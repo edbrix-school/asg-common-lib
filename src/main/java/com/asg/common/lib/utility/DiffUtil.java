@@ -17,7 +17,7 @@ public class DiffUtil {
         for (Field field : fields) {
             field.setAccessible(true);
             try {
-                Object oldValue = field.get(oldEntity);
+                Object oldValue = oldEntity != null ? field.get(oldEntity) : null;
                 Object newValue = field.get(newEntity);
                 
                 if (!Objects.equals(oldValue, newValue)) {
