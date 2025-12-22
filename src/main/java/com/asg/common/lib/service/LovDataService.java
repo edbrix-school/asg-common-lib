@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.entity.TimeZoneEntity;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.repository.TimeZoneDataRepository;
+import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.dialect.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -329,7 +330,7 @@ public class LovDataService {
             return new LovGetListDto();
 
         LovGetListDto dto = new LovGetListDto();
-        Map<String, Object> listValue = this.getLovList("", 0L, 0L, 0L,
+        Map<String, Object> listValue = this.getLovList("", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
                 "", ""
@@ -354,7 +355,7 @@ public class LovDataService {
             return new LovGetListDto();
 
         LovGetListDto dto = new LovGetListDto();
-        Map<String, Object> listValue = this.getLovList("", 0L, 0L, 0L,
+        Map<String, Object> listValue = this.getLovList("", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
                 "", ""
@@ -369,66 +370,15 @@ public class LovDataService {
         }
         return dto;
     }
-
-    public LovGetListDto getLovItemByPoid(Long poid, String lovName, Long groupPoid, Long companyPoid, Long userPoid) {
-        log.info("Fetching LOV item - poid: {}, lovName: {}, groupPoid: {}, companyPoid: {}, userPoid: {}", 
-                poid, lovName, groupPoid, companyPoid, userPoid);
-        
-        if (poid == null || lovName == null || lovName.isEmpty()) {
-            return new LovGetListDto();
-        }
-
-        Map<String, Object> listValue = this.getLovList("", groupPoid, companyPoid, userPoid,
-                lovName, 0, 0, "", "");
-        
-        if (listValue != null) {
-            @SuppressWarnings("unchecked")
-            List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
-            
-            if (lovGetListDtos != null) {
-                return lovGetListDtos.stream()
-                        .filter(x -> x.getPoid().equals(poid))
-                        .findFirst()
-                        .orElse(new LovGetListDto());
-            }
-        }
-        return new LovGetListDto();
-    }
-
-    public LovGetListDto getLovItemByCode(String code, String lovName, Long groupPoid, Long companyPoid, Long userPoid) {
-        log.info("Fetching LOV item - code: {}, lovName: {}, groupPoid: {}, companyPoid: {}, userPoid: {}",
-                code, lovName, groupPoid, companyPoid, userPoid);
-
-        if (code == null || code.isEmpty() || lovName == null || lovName.isEmpty()) {
-            return new LovGetListDto();
-        }
-
-        Map<String, Object> listValue = this.getLovList("", groupPoid, companyPoid, userPoid,
-                lovName, 0, 0, "", "");
-
-        if (listValue != null) {
-            @SuppressWarnings("unchecked")
-            List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
-
-            if (lovGetListDtos != null) {
-                return lovGetListDtos.stream()
-                        .filter(x -> x.getCode().equals(code))
-                        .findFirst()
-                        .orElse(new LovGetListDto());
-            }
-        }
-        return new LovGetListDto();
-    }
-
-    public LovGetListDto getLovItemByCodeFast(String code, String lovName, Long groupPoid, Long companyPoid, Long userPoid) {
+    public LovGetListDto getLovItemByCodeFast(String code, String lovName) {
         log.info("Fetching LOV item (fast) - code: {}, lovName: {}, groupPoid: {}, companyPoid: {}, userPoid: {}",
-                code, lovName, groupPoid, companyPoid, userPoid);
+                code, lovName, UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid());
 
         if (code == null || code.isEmpty() || lovName == null || lovName.isEmpty()) {
             return new LovGetListDto();
         }
 
-        Map<String, Object> listValue = this.getLovList(code, groupPoid, companyPoid, userPoid,
+        Map<String, Object> listValue = this.getLovList(code, UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName, 0, 0, "", "");
 
         if (listValue != null) {
