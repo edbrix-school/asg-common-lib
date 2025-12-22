@@ -31,6 +31,7 @@ public class DocumentSearchService {
     // Used by search method for filtering
     public List<String> getSearchableFieldNames(DocumentEntity doc) {
         String sql = doc.getListOfRecordsSql();
+
         return (sql != null && !sql.isBlank())
                 ? tableMetaRepository.getColumnsFromSql(sql)
                 : tableMetaRepository.getColumnsFromTable(doc.getMainTableName());
