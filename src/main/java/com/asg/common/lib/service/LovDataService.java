@@ -27,6 +27,10 @@ public class LovDataService {
     @Autowired
     private TimeZoneDataRepository timeZoneDataRepository;
 
+    private static final List<String> SKIP_FILTER_LOV_NAMES = Arrays.asList(
+            "TERMS_TEMPLATE_MASTER"
+    );
+
     // ================================
     // Generic LOV method
     // ================================
@@ -111,12 +115,12 @@ public class LovDataService {
                     }
 
                     // ✅ Apply client-side filtering after reading all rows
-                    if (filter != null && !filter.trim().isEmpty()) {
+                    if (filter != null && !filter.trim().isEmpty() && !SKIP_FILTER_LOV_NAMES.contains(lovName)) {
                         String filterLower = filter.trim().toLowerCase();
                         result = result.stream()
 
                                 .filter(dto ->
-                                        (dto.getValue() != null && dto.getPoid().toString().toLowerCase().contains(filterLower)) ||
+                                                (dto.getValue()!=null && dto.getPoid().toString().toLowerCase().contains(filterLower))||
                                                 (dto.getCode() != null && dto.getCode().toLowerCase().contains(filterLower)) ||
                                                 (dto.getDescription() != null && dto.getDescription().toLowerCase().contains(filterLower)) ||
                                                 (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)) ||
@@ -151,7 +155,7 @@ public class LovDataService {
 
 
                     List<LovGetListDto> paginatedList;
-                    if (pageSize <= 0) {
+                    if (pageSize <= 0 || SKIP_FILTER_LOV_NAMES.contains(lovName)) {
                         paginatedList = result; // return all
                     } else {
                         int fromIndex = Math.max(pageNumber * pageSize, 0);
