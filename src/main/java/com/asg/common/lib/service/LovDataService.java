@@ -398,4 +398,28 @@ public class LovDataService {
         }
         return new LovGetListDto();
     }
+
+    public LovGetListDto getDetailsByPoidAndLovNameFast(Long poid, String lovName) {
+        log.info("poid : {}, lovName : {}", poid, lovName);
+        if (poid == null || lovName == null || lovName.isEmpty())
+            return new LovGetListDto();
+
+        LovGetListDto dto = new LovGetListDto();
+        Map<String, Object> listValue = this.getLovList(poid.toString(), UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
+                lovName,
+                0, 0,
+                "", ""
+        );
+        if (listValue != null) {
+            @SuppressWarnings("unchecked")
+            List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
+            if (lovGetListDtos != null) {
+                dto = lovGetListDtos.stream()
+                        .filter(x -> x.getPoid().equals(poid))
+                        .findAny()
+                        .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+            }
+        }
+        return dto;
+    }
 }
