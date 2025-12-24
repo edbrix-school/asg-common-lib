@@ -27,6 +27,10 @@ public class LovDataService {
     @Autowired
     private TimeZoneDataRepository timeZoneDataRepository;
 
+    private static final List<String> SKIP_FILTER_LOV_NAMES = Arrays.asList(
+            "TERMS_TEMPLATE_MASTER"
+    );
+
     // ================================
     // Generic LOV method
     // ================================
@@ -44,6 +48,17 @@ public class LovDataService {
             String filter, Long groupPoid, Long companyPoid, Long userPoid,
             String lovName, int pageNumber, int pageSize,
             String sortBy, String sortDir, List<String> defaultCode, List<Long> defaultPoid) {
+        return getLovList(filter, groupPoid, companyPoid, userPoid, lovName, pageNumber, pageSize, sortBy, sortDir, defaultCode, defaultPoid, null);
+    }
+
+    // ================================
+    // Generic LOV method with default parameters + optional filter field (backward compatible)
+    // ================================
+    public Map<String, Object> getLovList(
+            String filter, Long groupPoid, Long companyPoid, Long userPoid,
+            String lovName, int pageNumber, int pageSize,
+            String sortBy, String sortDir, List<String> defaultCode, List<Long> defaultPoid,
+            String filterField) {
 
         return jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
@@ -52,51 +67,51 @@ public class LovDataService {
                     cs.setLong(2, companyPoid != null ? companyPoid : 1L);
                     cs.setLong(3, userPoid != null ? userPoid : 0L);
                     cs.setString(4, lovName != null ? lovName : "");
-                    cs.setString(5, "");
+                    // P_LOV_FILTER_FIELD
+                    cs.setString(5, filterField != null ? filterField : "");
                     cs.setString(6, filter != null ? filter : "");
                     cs.registerOutParameter(7, OracleTypes.CURSOR);
                     return cs;
                 },
                 (CallableStatementCallback<Map<String, Object>>) cs -> {
                     cs.execute();
-                    ResultSet rs = (ResultSet) cs.getObject(7);
-                    if (rs == null) {
-                        Map<String, Object> response = new HashMap<>();
-                        response.put("totalRecords", 0);
-                        response.put("data", Collections.emptyList());
-                        response.put("warning", "No data returned for lovName: " + lovName);
-                        return response;
-                    }
-                    List<LovGetListDto> result = new ArrayList<>();
-                    boolean includeUsers = "USER_ROLES".equalsIgnoreCase(lovName);
-                    while (rs.next()) {
-                        LovGetListDto dto = new LovGetListDto();
-                        dto.setPoid(rs.getLong("POID"));
-                        dto.setCode(rs.getString("CODE"));
-                        dto.setDescription(rs.getString("DESCRIPTION"));
-                        String description = rs.getString("DESCRIPTION");
+                    try (ResultSet rs = (ResultSet) cs.getObject(7)) {
+                        if (rs == null) {
+                            Map<String, Object> response = new HashMap<>();
+                            response.put("totalRecords", 0);
+                            response.put("data", Collections.emptyList());
+                            response.put("warning", "No data returned for lovName: " + lovName);
+                            return response;
+                        }
+                        List<LovGetListDto> result = new ArrayList<>();
+                        boolean includeUsers = "USER_ROLES".equalsIgnoreCase(lovName);
+                        while (rs.next()) {
+                            LovGetListDto dto = new LovGetListDto();
+                            dto.setPoid(rs.getLong("POID"));
+                            dto.setCode(rs.getString("CODE"));
+                            dto.setDescription(rs.getString("DESCRIPTION"));
+                            String description = rs.getString("DESCRIPTION");
 
-                        if ("PREFERRED_COMMUNICATION".equalsIgnoreCase(lovName) ||
-                                "ADDRESS_PARTY_TYPE".equalsIgnoreCase(lovName)) {
-                            dto.setLabel((description == null || description.trim().isEmpty())
-                                    ? dto.getCode()
-                                    : description);
-                        } else {
-                            dto.setLabel(description);
-                        }
+                            if ("PREFERRED_COMMUNICATION".equalsIgnoreCase(lovName) ||
+                                    "ADDRESS_PARTY_TYPE".equalsIgnoreCase(lovName)) {
+                                dto.setLabel((description == null || description.trim().isEmpty())
+                                        ? dto.getCode()
+                                        : description);
+                            } else {
+                                dto.setLabel(description);
+                            }
 
-                        dto.setValue(rs.getLong("POID"));
-                        try {
-                            dto.setSeqNo(rs.getInt("SEQNO"));
-                        } catch (SQLException ignored) {
-                            dto.setSeqNo(0);
+                            dto.setValue(rs.getLong("POID"));
+                            try {
+                                dto.setSeqNo(rs.getInt("SEQNO"));
+                            } catch (SQLException ignored) {
+                                dto.setSeqNo(0);
+                            }
+                            if (includeUsers) {
+                                dto.setUsers(rs.getString("USERS"));
+                            }
+                            result.add(dto);
                         }
-                        if (includeUsers) {
-                            dto.setUsers(rs.getString("USERS"));
-                        }
-                        result.add(dto);
-                    }
-                    rs.close();
 
                     // Find default values
                     List<LovGetListDto> defaultValues = new ArrayList<>();
@@ -111,12 +126,12 @@ public class LovDataService {
                     }
 
                     // ✅ Apply client-side filtering after reading all rows
-                    if (filter != null && !filter.trim().isEmpty()) {
+                    if (filter != null && !filter.trim().isEmpty() && !SKIP_FILTER_LOV_NAMES.contains(lovName)) {
                         String filterLower = filter.trim().toLowerCase();
                         result = result.stream()
 
                                 .filter(dto ->
-                                        (dto.getValue() != null && dto.getPoid().toString().toLowerCase().contains(filterLower)) ||
+                                                (dto.getValue()!=null && dto.getPoid().toString().toLowerCase().contains(filterLower))||
                                                 (dto.getCode() != null && dto.getCode().toLowerCase().contains(filterLower)) ||
                                                 (dto.getDescription() != null && dto.getDescription().toLowerCase().contains(filterLower)) ||
                                                 (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)) ||
@@ -151,7 +166,7 @@ public class LovDataService {
 
 
                     List<LovGetListDto> paginatedList;
-                    if (pageSize <= 0) {
+                    if (pageSize <= 0 || SKIP_FILTER_LOV_NAMES.contains(lovName)) {
                         paginatedList = result; // return all
                     } else {
                         int fromIndex = Math.max(pageNumber * pageSize, 0);
@@ -164,6 +179,7 @@ public class LovDataService {
                     response.put("data", paginatedList);
                     response.put("defaultValues", defaultValues);
                     return response;
+                    }
                 }
         );
     }
@@ -294,33 +310,34 @@ public class LovDataService {
     // ================================
     public List<LovGetListDto> getAgeingBreakupTypes(Long groupPoid, Long companyPoid, Long userPoid) {
         return jdbcTemplate.execute((Connection con) -> {
-            CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
+            try (CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}")) {
+                cs.setObject(1, groupPoid, Types.NUMERIC);
+                cs.setObject(2, companyPoid, Types.NUMERIC);
+                cs.setObject(3, userPoid, Types.NUMERIC);
+                cs.setString(4, "GL_AGEING_TYPES");
+                cs.setString(5, null);
+                cs.setString(6, null);
+                cs.registerOutParameter(7, OracleTypes.CURSOR);
 
-            cs.setObject(1, groupPoid, Types.NUMERIC);
-            cs.setObject(2, companyPoid, Types.NUMERIC);
-            cs.setObject(3, userPoid, Types.NUMERIC);
-            cs.setString(4, "GL_AGEING_TYPES");
-            cs.setString(5, null);
-            cs.setString(6, null);
-            cs.registerOutParameter(7, OracleTypes.CURSOR);
+                cs.execute();
 
-            cs.execute();
-            ResultSet rs = (ResultSet) cs.getObject(7);
+                List<LovGetListDto> result = new ArrayList<>();
+                try (ResultSet rs = (ResultSet) cs.getObject(7)) {
+                    while (rs != null && rs.next()) {
+                        LovGetListDto dto = new LovGetListDto();
+                        dto.setPoid(rs.getLong("POID"));
+                        dto.setCode(rs.getString("CODE"));
 
-            List<LovGetListDto> result = new ArrayList<>();
-            while (rs.next()) {
-                LovGetListDto dto = new LovGetListDto();
-                dto.setPoid(rs.getLong("POID"));
-                dto.setCode(rs.getString("CODE"));
-
-                String description = rs.getString("DESCRIPTION");
-                dto.setLabel(description != null ? description : rs.getString("CODE"));
-                dto.setValue(0L);
-                dto.setDescription(description);
-                dto.setSeqNo(0);
-                result.add(dto);
+                        String description = rs.getString("DESCRIPTION");
+                        dto.setLabel(description != null ? description : rs.getString("CODE"));
+                        dto.setValue(0L);
+                        dto.setDescription(description);
+                        dto.setSeqNo(0);
+                        result.add(dto);
+                    }
+                }
+                return result;
             }
-            return result;
         });
     }
 
@@ -393,5 +410,29 @@ public class LovDataService {
             }
         }
         return new LovGetListDto();
+    }
+
+    public LovGetListDto getDetailsByPoidAndLovNameFast(Long poid, String lovName) {
+        log.info("poid : {}, lovName : {}", poid, lovName);
+        if (poid == null || lovName == null || lovName.isEmpty())
+            return new LovGetListDto();
+
+        LovGetListDto dto = new LovGetListDto();
+        Map<String, Object> listValue = this.getLovList(poid.toString(), UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
+                lovName,
+                0, 0,
+                "", ""
+        );
+        if (listValue != null) {
+            @SuppressWarnings("unchecked")
+            List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
+            if (lovGetListDtos != null) {
+                dto = lovGetListDtos.stream()
+                        .filter(x -> x.getPoid().equals(poid))
+                        .findAny()
+                        .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+            }
+        }
+        return dto;
     }
 }
