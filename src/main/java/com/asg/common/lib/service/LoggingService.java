@@ -1,7 +1,7 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DiffObject;
-import com.asg.common.lib.dto.LogResponseDto;
+import com.asg.common.lib.dto.response.LogResponseDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.LoggingRepository;
