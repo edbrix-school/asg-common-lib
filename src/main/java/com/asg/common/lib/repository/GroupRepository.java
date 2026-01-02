@@ -1,0 +1,10 @@
+package com.asg.common.lib.repository;
+
+import com.asg.common.lib.entity.GroupEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface GroupRepository extends JpaRepository<GroupEntity, Long> {
+    boolean existsByGroupPoid(Long groupPoid);
+}

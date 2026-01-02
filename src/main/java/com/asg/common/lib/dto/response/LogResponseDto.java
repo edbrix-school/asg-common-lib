@@ -1,4 +1,4 @@
-package com.asg.common.lib.dto;
+package com.asg.common.lib.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
