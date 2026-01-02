@@ -9,7 +9,7 @@
 		<version>3.5.7</version>
 		<relativePath/>
 	</parent>
-	
+
 	<groupId>com.asg.common</groupId>
 	<artifactId>asg-common-lib</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -45,15 +45,22 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations-jakarta</artifactId>
-            <version>2.2.29</version>
-            <scope>compile</scope>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports</artifactId>
+            <version>6.21.3</version>
         </dependency>
         <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports-fonts</artifactId>
+            <version>6.21.3</version>
+        </dependency>
+        <!-- Groovy dependency for JasperReports -->
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>4.0.15</version>
         </dependency>
     </dependencies>
 
