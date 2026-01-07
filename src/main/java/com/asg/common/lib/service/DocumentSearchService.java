@@ -7,6 +7,7 @@ import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.entity.DocumentEntity;
 import com.asg.common.lib.repository.DocumentCommonRepository;
 import com.asg.common.lib.repository.TableMetaRepository;
+import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -58,7 +59,7 @@ public class DocumentSearchService {
 
         List<String> columnNames = getSearchableFieldNames(doc);
 
-        Clause clause = buildWhereClause(columnNames, filters, operator, isDeleted);
+        Clause clause = buildWhereClause(doc, columnNames, filters, operator, isDeleted);
 
         // Apply sorting and get the SQL with WHERE clause
         String sortedSql = applySorting(baseSql, pageable, columnNames, clause.sql());
@@ -138,7 +139,7 @@ public class DocumentSearchService {
     /**
      * Build WHERE clause with positional params
      */
-    private Clause buildWhereClause(List<String> fields, List<FilterDto> filters, String operator, String isDeleted) {
+    private Clause buildWhereClause(DocumentEntity doc, List<String> fields, List<FilterDto> filters, String operator, String isDeleted) {
         StringBuilder sql = new StringBuilder(" WHERE 1=1 ");
         List<Object> params = new ArrayList<>();
 
@@ -149,6 +150,15 @@ public class DocumentSearchService {
         } else {
             // default or anything else → show active
             sql.append(" AND (DELETED IS NULL OR DELETED = 'N')");
+        }
+
+        // Add COMPANY_POID filter for Transactions document type
+        if ("Transactions".equalsIgnoreCase(doc.getDocType()) && fields.contains("COMPANY_POID")) {
+            Long companyPoid = UserContext.getCompanyPoid();
+            if (companyPoid != null) {
+                sql.append(" AND COMPANY_POID = ?");
+                params.add(companyPoid);
+            }
         }
 
         // variables to check for operator precedence case with OR/AND
