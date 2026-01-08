@@ -81,16 +81,16 @@ public class DocumentDeleteService {
 
             if (result != null && result.contains("SUCCESS") && deleteReason != null) {
                 loggingService.createLogSummaryEntry(
-                        LogDetailsEnum.DELETED,
                         docId,
-                        String.format("%s - %s", docType, deleteReason)
+                        String.valueOf(docKeyPoid),
+                        String.format("Deleted - %s - %s", docType, deleteReason)
                 );
                 return result;
             } else {
                 loggingService.createLogSummaryEntry(
-                        LogDetailsEnum.DELETED,
                         docId,
-                        String.format("%s", docType)
+                        String.valueOf(docKeyPoid),
+                        String.format("Error on delete - %s - %s", docType, result)
                 );
                 throw new ValidationException("Error while deleting: " + result);
             }
