@@ -28,7 +28,7 @@ public class DocumentDeleteService {
     private DocumentCommonRepository documentCommonRepository;
 
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
-                                 String deleteReason, LocalDate transactionDate) {
+                                 DeleteReasonDto deleteReason, LocalDate transactionDate) {
         
         Long groupPoid = UserContext.getGroupPoid();
         Long companyPoid = UserContext.getCompanyPoid();
@@ -79,11 +79,12 @@ public class DocumentDeleteService {
 
             String result = stmt.getString(11);
 
-            if (result != null && result.contains("SUCCESS") && deleteReason != null) {
+            if (result != null && result.contains("SUCCESS")) {
+                String logDetails = deleteReason != null ? deleteReason.getDeleteReason() : "";
                 loggingService.createLogSummaryEntry(
                         docId,
                         String.valueOf(docKeyPoid),
-                        String.format("Deleted - %s - %s", docType, deleteReason)
+                        String.format("Deleted - %s - %s", docKeyPoid, logDetails)
                 );
                 return result;
             } else {
