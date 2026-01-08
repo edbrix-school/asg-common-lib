@@ -187,6 +187,16 @@ public class LovDataService {
     public Map<String, Object> getBankMasterLov(
             String filter, Long groupPoid, Long companyPoid, Long userPoid,
             int pageNumber, int pageSize, String sortBy, String sortDir) {
+        return getBankMasterLov(filter, groupPoid, companyPoid, userPoid, pageNumber, pageSize, sortBy, sortDir, null);
+    }
+
+    // ================================
+    // Bank Master LOV with filter field (backward compatible)
+    // ================================
+    public Map<String, Object> getBankMasterLov(
+            String filter, Long groupPoid, Long companyPoid, Long userPoid,
+            int pageNumber, int pageSize, String sortBy, String sortDir,
+            String filterField) {
 
         try {
 
@@ -201,7 +211,7 @@ public class LovDataService {
 
                         // STRING arguments
                         cs.setString(4, "BANK_MASTER");                           // VARCHAR2
-                        cs.setString(5, "");                                      // VARCHAR2
+                        cs.setString(5, filterField != null ? filterField : "");   // VARCHAR2 - P_LOV_FILTER_FIELD
                         cs.setString(6, filter != null ? filter : "");            // VARCHAR2
 
                         // OUTPUT CURSOR
