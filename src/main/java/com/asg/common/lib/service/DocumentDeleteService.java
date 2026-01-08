@@ -1,5 +1,6 @@
 package com.asg.common.lib.service;
 
+import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.entity.DocumentEntity;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.DocumentCommonRepository;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.time.LocalDate;
 
 @Service
 @Slf4j
@@ -24,8 +26,14 @@ public class DocumentDeleteService {
     @Autowired
     private DocumentCommonRepository documentCommonRepository;
 
-    public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName, 
-                                String deleteReason, Date docDate) {
+    public String deleteDocument(String tableName, String poidColumnName, Long docKeyPoid, DeleteReasonDto deleteReasonDto) {
+        String deleteReason = deleteReasonDto != null ? deleteReasonDto.getDeleteReason() : null;
+        LocalDate transactionDate = deleteReasonDto != null ? deleteReasonDto.getTransactionDate() : null;
+        return deleteDocument(docKeyPoid, tableName, poidColumnName, deleteReason, transactionDate);
+    }
+
+    public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
+                                 String deleteReason, LocalDate transactionDate) {
         
         Long groupPoid = UserContext.getGroupPoid();
         Long companyPoid = UserContext.getCompanyPoid();
@@ -64,6 +72,10 @@ public class DocumentDeleteService {
             stmt.setLong(6, docKeyPoid);
             stmt.setString(7, tableName);
             stmt.setString(8, "MARK_AS_DELETE");
+            Date docDate = null;
+            if (transactionDate != null) {
+                docDate = Date.valueOf(transactionDate);
+            }
             stmt.setDate(9, docDate);
             stmt.setString(10, docType);
             stmt.registerOutParameter(11, Types.VARCHAR);
@@ -72,11 +84,11 @@ public class DocumentDeleteService {
 
             String result = stmt.getString(11);
 
-            if (result != null && result.contains("SUCCESS")) {
+            if (result != null && result.contains("SUCCESS") && deleteReason != null) {
                 loggingService.createLogSummaryEntry(
-                    com.asg.common.lib.enums.LogDetailsEnum.DELETED,
-                    docId,
-                    String.format("%s - %s", docType, deleteReason)
+                        com.asg.common.lib.enums.LogDetailsEnum.DELETED,
+                        docId,
+                        String.format("%s - %s", docType, deleteReason)
                 );
                 return result;
             } else {
