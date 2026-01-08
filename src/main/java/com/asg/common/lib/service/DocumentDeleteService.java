@@ -2,6 +2,7 @@ package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.entity.DocumentEntity;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.DocumentCommonRepository;
 import com.asg.common.lib.security.util.UserContext;
@@ -25,12 +26,6 @@ public class DocumentDeleteService {
 
     @Autowired
     private DocumentCommonRepository documentCommonRepository;
-
-    public String deleteDocument(String tableName, String poidColumnName, Long docKeyPoid, DeleteReasonDto deleteReasonDto) {
-        String deleteReason = deleteReasonDto != null ? deleteReasonDto.getDeleteReason() : null;
-        LocalDate transactionDate = deleteReasonDto != null ? deleteReasonDto.getTransactionDate() : null;
-        return deleteDocument(docKeyPoid, tableName, poidColumnName, deleteReason, transactionDate);
-    }
 
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
                                  String deleteReason, LocalDate transactionDate) {
@@ -86,12 +81,17 @@ public class DocumentDeleteService {
 
             if (result != null && result.contains("SUCCESS") && deleteReason != null) {
                 loggingService.createLogSummaryEntry(
-                        com.asg.common.lib.enums.LogDetailsEnum.DELETED,
+                        LogDetailsEnum.DELETED,
                         docId,
                         String.format("%s - %s", docType, deleteReason)
                 );
                 return result;
             } else {
+                loggingService.createLogSummaryEntry(
+                        LogDetailsEnum.DELETED,
+                        docId,
+                        String.format("%s", docType)
+                );
                 throw new ValidationException("Error while deleting: " + result);
             }
 
