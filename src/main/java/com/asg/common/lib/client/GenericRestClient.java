@@ -77,11 +77,7 @@ public class GenericRestClient {
 
     private HttpHeaders buildHeaders(HttpHeaders customHeaders) {
         HttpHeaders headers = new HttpHeaders();
-        
-        if (customHeaders != null) {
-            headers.addAll(customHeaders);
-        }
-        
+
         headers.add("X-User-Name", UserContext.getUserName());
         headers.add("X-User-Poid", UserContext.getUserPoid() != null ? UserContext.getUserPoid().toString() : null);
         headers.add("X-User-Id", UserContext.getUserId());
@@ -92,7 +88,11 @@ public class GenericRestClient {
         if (!headers.containsKey("X-Company-Poid") || StringUtils.isBlank(headers.getFirst("X-Company-Poid"))) {
             headers.add("X-Company-Poid", UserContext.getCompanyPoid() != null ? UserContext.getCompanyPoid().toString() : null);
         }
-        
+
+        if (customHeaders != null) {
+            headers.addAll(customHeaders);
+        }
+
         return headers;
     }
 }
