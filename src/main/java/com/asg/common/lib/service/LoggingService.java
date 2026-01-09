@@ -57,31 +57,9 @@ public class LoggingService {
     // INSERT SUMMARY LOG (PROC_UPDATE_LOG_SUMMARY)
     // ----------------------------------------------------------
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
-
-        Long userPoid = UserContext.getUserPoid();
-        if (userPoid == null)
-            throw new ValidationException("User not authenticated");
-
-        if (docId == null)
-            docId = UserContext.getDocumentId();
-
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
-
-        try (Connection con = dataSource.getConnection();
-             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
-
-            stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
-            stmt.setString(3, logDetails);                             // P_LOGDETAILS
-            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
-            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
-
-            stmt.execute();
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
-        }
+        createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
 
     // ----------------------------------------------------------
@@ -168,11 +146,39 @@ public class LoggingService {
             );
         }
     }
+
     public void logSimpleFieldChange(Class<?> entityClass, String docId, String docKeyPoid,
                                      String fieldName, String oldVal, String newVal, String detailPrefix) {
 
         String tableName = entityClass.getAnnotation(jakarta.persistence.Table.class).name();
         createLogDetailsEntry(docId, docKeyPoid, fieldName, oldVal, newVal, detailPrefix, tableName);
+    }
+
+    public void createLogSummaryEntry(String docId, String docKeyPoid, String logDetails) {
+
+        Long userPoid = UserContext.getUserPoid();
+        if (userPoid == null)
+            throw new ValidationException("User not authenticated");
+
+        if (docId == null)
+            docId = UserContext.getDocumentId();
+
+        // Build meaningful log text
+
+        try (Connection con = dataSource.getConnection();
+             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
+
+            stmt.setLong(1, userPoid);                                 // P_USER_POID
+            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setString(3, logDetails);                             // P_LOGDETAILS
+            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
+            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
+
+            stmt.execute();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
+        }
     }
 
 }
