@@ -20,6 +20,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
@@ -30,6 +32,9 @@ public class LoggingService {
 
     @Autowired
     private DataSource dataSource;
+    
+    // Track summary logs per transaction to prevent duplicates
+    private final Set<String> summaryLogTracker = ConcurrentHashMap.newKeySet();
 
     // ----------------------------------------------------------
     // READ SUMMARY LOGS
@@ -86,7 +91,7 @@ public class LoggingService {
                      "{call PROC_UPDATE_LOG_DETAILS(?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
 
             stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setTimestamp(2, new Timestamp(System.currentTimeMillis())); // P_LOGDATETIME - DB format
             stmt.setString(3, logDetails);                             // P_LOGDETAILS
             stmt.setString(4, docId);                                  // P_LOG_DOC_ID
             stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
@@ -118,18 +123,14 @@ public class LoggingService {
     }
     public <T> void logChanges(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, LogDetailsEnum logType, String keyIdLabel) {
 
-        // 1) summary
-        createLogSummaryEntry(logType, documentId, docKeyPoid);
-
-        T oldCopy = null;
-        if (oldObj != null) {
-            try {
-                oldCopy = clazz.getDeclaredConstructor().newInstance();
-                BeanUtils.copyProperties(oldObj, oldCopy);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to copy old object for logging", e);
-            }
+        // 1) summary - only once per transaction
+        String summaryKey = documentId + ":" + docKeyPoid + ":" + logType.name();
+        if (!summaryLogTracker.contains(summaryKey)) {
+            createLogSummaryEntry(logType, documentId, docKeyPoid);
+            summaryLogTracker.add(summaryKey);
         }
+
+
 
         // prefix
         String logDetail = String.format("KeyId = %s:%s", keyIdLabel, docKeyPoid);
@@ -169,7 +170,7 @@ public class LoggingService {
              CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
 
             stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setTimestamp(2, new Timestamp(System.currentTimeMillis())); // P_LOGDATETIME - DB format
             stmt.setString(3, logDetails);                             // P_LOGDETAILS
             stmt.setString(4, docId);                                  // P_LOG_DOC_ID
             stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
