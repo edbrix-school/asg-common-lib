@@ -121,15 +121,6 @@ public class LoggingService {
         // 1) summary
         createLogSummaryEntry(logType, documentId, docKeyPoid);
 
-        T oldCopy = null;
-        if (oldObj != null) {
-            try {
-                oldCopy = clazz.getDeclaredConstructor().newInstance();
-                BeanUtils.copyProperties(oldObj, oldCopy);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to copy old object for logging", e);
-            }
-        }
 
         // prefix
         String logDetail = String.format("KeyId = %s:%s", keyIdLabel, docKeyPoid);
