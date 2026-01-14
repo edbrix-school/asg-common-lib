@@ -44,6 +44,14 @@ public final class DiffUtil {
 
         for (Field field : entityClass.getDeclaredFields()) {
             field.setAccessible(true);
+            String fieldName = field.getName();
+
+            // Exclude audit fields
+            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") ||
+                fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
+                fieldName.equals("updatedDate")) {
+                continue;
+            }
 
             try {
                 Object oldValue = oldEntity != null ? field.get(oldEntity) : null;
