@@ -3,35 +3,154 @@ package com.asg.common.lib.utility;
 import com.asg.common.lib.dto.DiffObject;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class DiffUtil {
+/**
+ * Utility to generate audit diffs between two entity instances.
+ *
+ * - Compares values semantically (not Java-type sensitive)
+ * - Normalizes NEW value into OLD value's type
+ * - Ensures consistent audit log representation
+ *
+ * Java Version: 21
+ */
+public final class DiffUtil {
 
-    public static <T> List<DiffObject> createDiffList(T oldEntity, T newEntity, Class<T> entityClass) {
+    private DiffUtil() {
+    }
+
+    /**
+     * Zone used for all date/time normalization.
+     * Prefer UTC for audit consistency.
+     */
+    private static final ZoneId AUDIT_ZONE = ZoneId.of("UTC");
+
+    public static <T> List<DiffObject> createDiffList(
+            T oldEntity,
+            T newEntity,
+            Class<T> entityClass
+    ) {
         List<DiffObject> diffs = new ArrayList<>();
-        
-        Field[] fields = entityClass.getDeclaredFields();
-        
-        for (Field field : fields) {
+
+        if (newEntity == null) {
+            return diffs;
+        }
+
+        for (Field field : entityClass.getDeclaredFields()) {
             field.setAccessible(true);
+
             try {
                 Object oldValue = oldEntity != null ? field.get(oldEntity) : null;
                 Object newValue = field.get(newEntity);
-                
-                if (!Objects.equals(oldValue, newValue)) {
+
+                Object normalizedNewValue =
+                        normalizeToOldType(oldValue, newValue);
+
+                if (!Objects.equals(oldValue, normalizedNewValue)) {
                     diffs.add(new DiffObject(
-                        field.getName(),
-                        oldValue != null ? oldValue.toString() : null,
-                        newValue != null ? newValue.toString() : null
+                            field.getName(),
+                            formatForLog(oldValue),
+                            formatForLog(normalizedNewValue)
                     ));
                 }
-            } catch (IllegalAccessException e) {
-                // Skip inaccessible fields
+
+            } catch (IllegalAccessException ignored) {
+                // intentionally ignored
             }
         }
-        
         return diffs;
+    }
+
+    /**
+     * Converts the new value into the old value's type
+     * to keep audit logs type-consistent.
+     */
+    private static Object normalizeToOldType(Object oldValue, Object newValue) {
+        if (newValue == null || oldValue == null) {
+            return newValue;
+        }
+
+        return switch (oldValue) {
+
+            case Timestamp ignored -> {
+                Instant instant = extractInstant(newValue);
+                yield instant != null ? Timestamp.from(instant) : newValue;
+            }
+
+            case Date ignored -> {
+                Instant instant = extractInstant(newValue);
+                yield instant != null ? Date.from(instant) : newValue;
+            }
+
+            case Instant ignored ->
+                    extractInstant(newValue);
+
+            case LocalDateTime ignored -> {
+                Instant instant = extractInstant(newValue);
+                yield instant != null
+                        ? LocalDateTime.ofInstant(instant, AUDIT_ZONE)
+                        : newValue;
+            }
+
+            case LocalDate ignored -> {
+                Instant instant = extractInstant(newValue);
+                yield instant != null
+                        ? instant.atZone(AUDIT_ZONE).toLocalDate()
+                        : newValue;
+            }
+
+            case BigDecimal bdOld -> {
+                if (newValue instanceof BigDecimal bdNew) {
+                    yield bdNew.stripTrailingZeros();
+                }
+                yield newValue;
+            }
+
+            default -> newValue;
+        };
+    }
+
+    /**
+     * Extracts an Instant from any supported date/time type.
+     */
+    private static Instant extractInstant(Object value) {
+        return switch (value) {
+            case null -> null;
+            case Timestamp ts -> ts.toInstant();
+            case Date d -> d.toInstant();
+            case Instant i -> i;
+            case LocalDateTime ldt ->
+                    ldt.atZone(AUDIT_ZONE).toInstant();
+            case LocalDate ld ->
+                    ld.atStartOfDay(AUDIT_ZONE).toInstant();
+            case OffsetDateTime odt -> odt.toInstant();
+            case ZonedDateTime zdt -> zdt.toInstant();
+            default -> null;
+        };
+    }
+
+    /**
+     * Ensures consistent and readable audit log values.
+     */
+    private static String formatForLog(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        return switch (value) {
+            case Timestamp ts -> ts.toInstant().toString();
+            case Date d -> d.toInstant().toString();
+            case Instant i -> i.toString();
+            case LocalDateTime ldt -> ldt.toString();
+            case LocalDate ld -> ld.toString();
+            case BigDecimal bd -> bd.stripTrailingZeros().toPlainString();
+            default -> value.toString();
+        };
     }
 }
