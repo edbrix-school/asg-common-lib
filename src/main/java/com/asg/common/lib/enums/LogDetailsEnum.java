@@ -14,7 +14,8 @@ public enum LogDetailsEnum {
     LOGOUT("Logout -"),
     PASSWORD_RESET("Password Reset -"),
     PASSWORD_EMAIL_SENT("Password Email Sent -"),
-    STATUS_CHANGED("Status Changed-");
+    STATUS_CHANGED("Status Changed-"),
+    ATTACHMENTS_UPLOADED("Attachments uploaded -");
 
     private final String description;
 
