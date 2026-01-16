@@ -47,9 +47,10 @@ public final class DiffUtil {
             String fieldName = field.getName();
 
             // Exclude audit fields
-            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") ||
-                fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
-                fieldName.equals("updatedDate")) {
+            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") || fieldName.equals("createdAt") ||
+                    fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
+                    fieldName.equals("updatedBy") || fieldName.equals("updatedAt") ||
+                    fieldName.equals("updatedDate")) {
                 continue;
             }
 
