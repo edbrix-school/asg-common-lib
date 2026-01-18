@@ -45,6 +45,15 @@ public final class DiffUtil {
         for (Field field : entityClass.getDeclaredFields()) {
             field.setAccessible(true);
 
+            String fieldName = field.getName();
+
+            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") || fieldName.equals("createdAt") ||
+                    fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
+                    fieldName.equals("updatedBy") || fieldName.equals("updatedAt") ||
+                    fieldName.equals("updatedDate")) {
+                continue;
+            }
+
             if (field.isAnnotationPresent(AuditIgnore.class)) {
                 continue;
             }
