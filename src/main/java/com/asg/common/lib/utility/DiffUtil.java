@@ -1,19 +1,19 @@
 package com.asg.common.lib.utility;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.DiffObject;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Utility to generate audit diffs between two entity instances.
  *
+ * - FAIL-CLOSED: Only fields annotated with @AuditField are logged
  * - Compares values semantically (not Java-type sensitive)
  * - Normalizes NEW value into OLD value's type
  * - Ensures consistent audit log representation
@@ -44,13 +44,8 @@ public final class DiffUtil {
 
         for (Field field : entityClass.getDeclaredFields()) {
             field.setAccessible(true);
-            String fieldName = field.getName();
 
-            // Exclude audit fields
-            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") || fieldName.equals("createdAt") ||
-                    fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
-                    fieldName.equals("updatedBy") || fieldName.equals("updatedAt") ||
-                    fieldName.equals("updatedDate")) {
+            if (field.isAnnotationPresent(AuditIgnore.class)) {
                 continue;
             }
 
@@ -61,7 +56,7 @@ public final class DiffUtil {
                 Object normalizedNewValue =
                         normalizeToOldType(oldValue, newValue);
 
-                if (!Objects.equals(oldValue, normalizedNewValue)) {
+                if (!areEqual(oldValue, normalizedNewValue)) {
                     diffs.add(new DiffObject(
                             field.getName(),
                             formatForLog(oldValue),
@@ -161,5 +156,27 @@ public final class DiffUtil {
             case BigDecimal bd -> bd.stripTrailingZeros().toPlainString();
             default -> value.toString();
         };
+    }
+
+    private static boolean areEqual(Object oldValue, Object newValue) {
+        if (!ObjectUtils.notEqual(oldValue, newValue)) {
+            return true;
+        }
+
+        if (oldValue == null || newValue == null) {
+            return false;
+        }
+
+        // byte[] content comparison
+        if (oldValue instanceof byte[] o && newValue instanceof byte[] n) {
+            return Arrays.equals(o, n);
+        }
+
+        // future-proof: other array types
+        if (oldValue.getClass().isArray() && newValue.getClass().isArray()) {
+            return Objects.deepEquals(oldValue, newValue);
+        }
+
+        return Objects.equals(oldValue, newValue);
     }
 }

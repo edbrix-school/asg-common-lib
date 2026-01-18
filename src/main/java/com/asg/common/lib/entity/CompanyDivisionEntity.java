@@ -1,5 +1,6 @@
 package com.asg.common.lib.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.entity.key.CompanyDivisionEntityKey;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -15,24 +16,30 @@ public class CompanyDivisionEntity {
 
     @EmbeddedId
     @Schema(hidden = true)
+    @AuditIgnore
     private CompanyDivisionEntityKey id;
 
     @Column(name = "DIV_POID")
+    @AuditIgnore
     private Long divPoid;
 
     @Column(name = "REMARKS")
     private String remarks;
 
     @Column(name = "CREATED_BY")
+    @AuditIgnore
     private String createdBy;
 
     @Column(name = "CREATED_DATE")
+    @AuditIgnore
     private LocalDateTime createdDate;
 
     @Column(name = "LASTMODIFIED_BY")
+    @AuditIgnore
     private String lastModifiedBy;
 
     @Column(name = "LASTMODIFIED_DATE")
+    @AuditIgnore
     private LocalDateTime lastModifiedDate;
 
     @Lob
@@ -66,9 +73,11 @@ public class CompanyDivisionEntity {
     private String divisionName;
 
     @Column(name = "COMPANY_DIV_ADDRESS_POS")
+    @AuditIgnore
     private String companyDivAddressPos;
 
     @Transient
+    @AuditIgnore
     public String actionType;
 }
 

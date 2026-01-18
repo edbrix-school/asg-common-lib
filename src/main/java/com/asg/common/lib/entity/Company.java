@@ -1,5 +1,6 @@
 package com.asg.common.lib.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.TimeZoneDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -18,14 +19,17 @@ import java.util.List;
 public class Company {
 
     @Column(name = "GROUP_POID")
+    @AuditIgnore
     private Long groupPoid;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COMPANY_POID")
+    @AuditIgnore
     private Long companyPoid;
 
     @Column(name = "COMPANY_CODE", length = 20)
+    @AuditIgnore
     private String companyCode;
 
     @Column(name = "COMPANY_NAME", length = 200)
@@ -33,14 +37,17 @@ public class Company {
 
     @Transient  //doesnt map to field in db
     @Schema(hidden = true)  //hides from swagger
+    @AuditIgnore
     private String label;
 
     @Transient  //doesnt map to field in db
     @Schema(hidden = true)  //hides from swagger
+    @AuditIgnore
     private Long value;
 
     @Transient  //doesnt map to field in db
     @Schema(hidden = true)  //hides from swagger
+    @AuditIgnore
     private TimeZoneDto timeZone;
 
     @Column(name = "COMPANY_NAME2", length = 200)
@@ -96,23 +103,29 @@ public class Company {
     private String active;
 
     @Column(name = "SEQNO")
+    @AuditIgnore
     private Integer seqNo;
 
     @Column(name = "CREATED_BY")
+    @AuditIgnore
     private String createdBy;
 
     @Column(name = "CREATED_DATE")
     @Temporal(TemporalType.TIMESTAMP)
+    @AuditIgnore
     private Date createdDate;
 
     @Column(name = "LASTMODIFIED_BY")
+    @AuditIgnore
     private String lastModifiedBy;
 
     @Column(name = "LASTMODIFIED_DATE")
+    @AuditIgnore
     @Temporal(TemporalType.TIMESTAMP)
     private Date lastModifiedDate;
 
     @Column(name = "DELETED")
+    @AuditIgnore
     private String deleted;
 
 //    @Lob
@@ -123,6 +136,7 @@ public class Company {
     private Date provisionalClosedDate;
 
     @Column(name = "BANK_DETAIL")
+    @AuditIgnore
     private String bankDetail;
 
     @Column(name = "BANK_POID")
@@ -141,12 +155,15 @@ public class Company {
     private String accountPerson;
 
     @Column(name = "STOCK_PERIOD_START")
+    @AuditIgnore
     private Date stockPeriodStart;  //inv_period_start
 
     @Column(name = "STOCK_PERIOD_END")
+    @AuditIgnore
     private Date stockPeriodEnd;    //inv_period_end
 
     @Column(name = "VAT_FILING_PERIOD")
+    @AuditIgnore
     private String vatFilingPeriod;
 
     @Column(name = "ACCOUNT_EMAIL")
@@ -156,34 +173,40 @@ public class Company {
     private String vatLastFiledBy;
 
     @Column(name = "VAT_LAST_FILED_CREATED_DATE")
+    @AuditIgnore
     private Date vatLastFiledCreatedDate;
 
     @Column(name = "FINANCIAL_DATE_UPDATED_BY")
     private String financialDateUpdatedBy;
 
     @Column(name = "FINANCIAL_DATE_UPDATED_DATE")
+    @AuditIgnore
     private Date financialDateUpdatedDate;
 
     @Column(name = "TRANS_DATE_UPDATED_BY")
     private String transDateUpdatedBy;
 
     @Column(name = "TRANS_DATE_UPDATED_DATE")
+    @AuditIgnore
     private Date transDateUpdatedDate;
 
     @Column(name = "REPORT_DATE_UPDATED_BY")
     private String reportDateUpdatedBy;
 
     @Column(name = "REPORT_DATE_UPDATED_DATE")
+    @AuditIgnore
     private Date reportDateUpdatedDate;
 
     @Column(name = "INVENTORY_DATE_UPDATED_BY")
     private String inventoryDateUpdatedBy;
 
     @Column(name = "INVENTORY_DATE_UPDATED_DATE")
+    @AuditIgnore
     private Date inventoryDateUpdatedDate;
 
     @Transient  //doesnt map to field in db
     @Schema(hidden = true)  //hides from swagger
+    @AuditIgnore
     private String countryCode;
 
     @Transient  //doesnt map to field in db
@@ -227,6 +250,7 @@ public class Company {
     private List<CompanyDivisionEntity> divisions;
 
     @Column(name = "STATE")
+    @AuditIgnore
     private String stateId;
 
     @Column(name = "COLOR")
