@@ -122,10 +122,18 @@ public class LoggingService {
         createLogSummaryEntry(logType, documentId, docKeyPoid);
 
 
+        logDetails(oldObj, newObj, clazz, documentId, docKeyPoid, keyIdLabel);
+    }
+
+    public  <T> void logDetails(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, String keyIdLabel) {
         // prefix
         String logDetail = String.format("KeyId = %s:%s", keyIdLabel, docKeyPoid);
 
         // 2) diff list
+        createLog(oldObj, newObj, clazz, documentId, docKeyPoid, logDetail);
+    }
+
+    public  <T> void createLog(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, String logDetail) {
         List<DiffObject> diffs = DiffUtil.createDiffList(oldObj, newObj, clazz);
 
         // table
