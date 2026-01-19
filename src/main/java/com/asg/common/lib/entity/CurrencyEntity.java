@@ -1,4 +1,5 @@
 package com.asg.common.lib.entity;
+import com.asg.common.lib.annotation.AuditIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,12 +29,15 @@ public class CurrencyEntity {
     )
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "currency_seq")
     @Column(name = "CURRENCY_POID")
+    @AuditIgnore
     private Long currencyPoid;
 
     @Column(name = "GROUP_POID", nullable = false)
+    @AuditIgnore
     private Long groupPoid;
 
     @Column(name = "CURRENCY_CODE", nullable = false)
+    @AuditIgnore
     private String currencyCode;
 
     @Column(name = "CURRENCY_NAME", unique = true)
@@ -49,9 +53,11 @@ public class CurrencyEntity {
     private String coinShortName;
 
     @Column(name = "NUMBER_FORMAT_CURRENCY")
+    @AuditIgnore
     private String numberFormatCurrency;
 
     @Column(name = "SEQNO")
+    @AuditIgnore
     private Integer seqno;
 
     @Column(name = "ACTIVE", length = 1)
@@ -61,18 +67,23 @@ public class CurrencyEntity {
     private Integer decimals;
 
     @Column(name = "CREATED_BY")
+    @AuditIgnore
     private String createdBy;
 
     @Column(name = "CREATED_DATE")
+    @AuditIgnore
     private OffsetDateTime createdDate;
 
     @Column(name = "LASTMODIFIED_BY")
+    @AuditIgnore
     private String lastModifiedBy;
 
     @Column(name = "LASTMODIFIED_DATE")
+    @AuditIgnore
     private OffsetDateTime lastModifiedDate;
 
     @Column(name = "DELETED")
+    @AuditIgnore
     private String deleted;
 
     @OneToMany(fetch = FetchType.LAZY)
