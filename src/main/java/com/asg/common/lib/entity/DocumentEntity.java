@@ -1,5 +1,6 @@
 package com.asg.common.lib.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 public class DocumentEntity {
     @Id
     @Column(name = "DOC_ID", length = 20, nullable = false)
+    @AuditIgnore
     private String docId;
 
     @Column(name = "DOC_SHORT_NAME", length = 100)
@@ -45,30 +47,37 @@ public class DocumentEntity {
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "DOC_ICON")
+    @AuditIgnore
     private byte[] docIcon;
 
     @Column(name = "DOC_DETAILS", length = 500)
     private String docDetails;
 
     @Column(name = "TASKFLOW_URL", length = 200)
+    @AuditIgnore
     private String taskflowUrl;
 
     @Column(name = "SEQNO")
     private Integer seqno;
 
     @Column(name = "CREATED_BY", length = 20)
+    @AuditIgnore
     private String createdBy;
 
     @Column(name = "CREATED_DATE")
+    @AuditIgnore
     private java.sql.Timestamp createdDate;
 
     @Column(name = "LASTMODIFIED_BY", length = 20)
+    @AuditIgnore
     private String lastModifiedBy;
 
     @Column(name = "LASTMODIFIED_DATE")
+    @AuditIgnore
     private java.sql.Timestamp lastModifiedDate;
 
     @Column(name = "DOC_POID")
+    @AuditIgnore
     private BigDecimal docPoid;
 
     @Column(name = "USER_ROLES", length = 200)

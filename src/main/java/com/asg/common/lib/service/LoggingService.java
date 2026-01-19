@@ -1,6 +1,7 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DiffObject;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.dto.response.LogResponseDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
@@ -177,6 +178,13 @@ public class LoggingService {
 
         } catch (SQLException e) {
             throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
+        }
+    }
+
+    public <T> void createLogBatch(List<LogRequestDto<T>> logRequests) {
+        for (LogRequestDto<T> request : logRequests) {
+            createLog(request.getOldObj(), request.getNewObj(), request.getClazz(), 
+                     request.getDocumentId(), request.getDocKeyPoid(), request.getLogDetail());
         }
     }
 

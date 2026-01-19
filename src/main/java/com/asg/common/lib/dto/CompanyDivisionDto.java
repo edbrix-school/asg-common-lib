@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class CompanyDivisionDto {
+    private Long companyPoid;
+    private Long detRowId;
     private Long divPoid;
     private String remarks;
     private String createdBy;
