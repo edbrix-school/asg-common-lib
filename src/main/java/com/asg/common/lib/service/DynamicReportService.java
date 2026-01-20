@@ -170,7 +170,7 @@ public class DynamicReportService {
         return defValue2;
     }
 
-    private Date getDateTruncated(Date dataData) {
+    private Date getDateTruncated(java.util.Date dataData) {
         try {
             if (dataData == null)
                 return null;
@@ -218,14 +218,32 @@ public class DynamicReportService {
         }
     }
 
-    private Date getLoginReportPeriodStart() {
+    private java.util.Date getLoginReportPeriodStart() {
         Map<String, Object> companyData = dynamicReportRepository.getLoginReportPeriod(getCompanyPoid());
-        return (Date) (companyData != null ? companyData.get("REPORT_PERIOD_START") : new java.util.Date());
+        Object periodStart = companyData != null ? companyData.get("REPORT_PERIOD_START") : new java.util.Date();
+        
+        if (periodStart instanceof java.sql.Timestamp) {
+            return new java.util.Date(((java.sql.Timestamp) periodStart).getTime());
+        } else if (periodStart instanceof java.sql.Date) {
+            return new java.util.Date(((java.sql.Date) periodStart).getTime());
+        } else if (periodStart instanceof java.util.Date) {
+            return (java.util.Date) periodStart;
+        }
+        return new java.util.Date();
     }
 
-    private Date getLoginReportPeriodEnd() {
+    private java.util.Date getLoginReportPeriodEnd() {
         Map<String, Object> companyData = dynamicReportRepository.getLoginReportPeriod(getCompanyPoid());
-        return (Date) (companyData != null ?  companyData.get("REPORT_PERIOD_END") : new java.util.Date());
+        Object periodEnd = companyData != null ? companyData.get("REPORT_PERIOD_END") : new java.util.Date();
+        
+        if (periodEnd instanceof java.sql.Timestamp) {
+            return new java.util.Date(((java.sql.Timestamp) periodEnd).getTime());
+        } else if (periodEnd instanceof java.sql.Date) {
+            return new java.util.Date(((java.sql.Date) periodEnd).getTime());
+        } else if (periodEnd instanceof java.util.Date) {
+            return (java.util.Date) periodEnd;
+        }
+        return new java.util.Date();
     }
 
     private Long getGroupPoid() {
