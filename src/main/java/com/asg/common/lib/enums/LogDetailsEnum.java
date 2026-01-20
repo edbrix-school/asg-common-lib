@@ -17,6 +17,7 @@ public enum LogDetailsEnum {
     STATUS_CHANGED("Status Changed-"),
     ATTACHMENTS_UPLOADED("Attachments uploaded -"),
     ATTACHMENT_DELETED("Attachment deleted -"),
+    ATTACHMENTS_DELETED("All attachments deleted -"),
     ATTACHMENT_UPDATED("Attachment updated -"),
     ATTACHMENT_ARCHIVED("Attachment archived -"),
     ATTACHMENT_DOWNLOADED("Attachment downloaded -"),
