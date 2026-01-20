@@ -1,6 +1,7 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DiffObject;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.dto.response.LogResponseDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
@@ -57,31 +58,9 @@ public class LoggingService {
     // INSERT SUMMARY LOG (PROC_UPDATE_LOG_SUMMARY)
     // ----------------------------------------------------------
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
-
-        Long userPoid = UserContext.getUserPoid();
-        if (userPoid == null)
-            throw new ValidationException("User not authenticated");
-
-        if (docId == null)
-            docId = UserContext.getDocumentId();
-
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
-
-        try (Connection con = dataSource.getConnection();
-             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
-
-            stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
-            stmt.setString(3, logDetails);                             // P_LOGDETAILS
-            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
-            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
-
-            stmt.execute();
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
-        }
+        createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
 
     // ----------------------------------------------------------
@@ -143,20 +122,19 @@ public class LoggingService {
         // 1) summary
         createLogSummaryEntry(logType, documentId, docKeyPoid);
 
-        T oldCopy = null;
-        if (oldObj != null) {
-            try {
-                oldCopy = clazz.getDeclaredConstructor().newInstance();
-                BeanUtils.copyProperties(oldObj, oldCopy);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to copy old object for logging", e);
-            }
-        }
 
+        logDetails(oldObj, newObj, clazz, documentId, docKeyPoid, keyIdLabel);
+    }
+
+    public  <T> void logDetails(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, String keyIdLabel) {
         // prefix
         String logDetail = String.format("KeyId = %s:%s", keyIdLabel, docKeyPoid);
 
         // 2) diff list
+        createLog(oldObj, newObj, clazz, documentId, docKeyPoid, logDetail);
+    }
+
+    public  <T> void createLog(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, String logDetail) {
         List<DiffObject> diffs = DiffUtil.createDiffList(oldObj, newObj, clazz);
 
         // table
@@ -168,11 +146,46 @@ public class LoggingService {
             );
         }
     }
+
     public void logSimpleFieldChange(Class<?> entityClass, String docId, String docKeyPoid,
                                      String fieldName, String oldVal, String newVal, String detailPrefix) {
 
         String tableName = entityClass.getAnnotation(jakarta.persistence.Table.class).name();
         createLogDetailsEntry(docId, docKeyPoid, fieldName, oldVal, newVal, detailPrefix, tableName);
+    }
+
+    public void createLogSummaryEntry(String docId, String docKeyPoid, String logDetails) {
+
+        Long userPoid = UserContext.getUserPoid();
+        if (userPoid == null)
+            throw new ValidationException("User not authenticated");
+
+        if (docId == null)
+            docId = UserContext.getDocumentId();
+
+        // Build meaningful log text
+
+        try (Connection con = dataSource.getConnection();
+             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
+
+            stmt.setLong(1, userPoid);                                 // P_USER_POID
+            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setString(3, logDetails);                             // P_LOGDETAILS
+            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
+            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
+
+            stmt.execute();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
+        }
+    }
+
+    public <T> void createLogBatch(List<LogRequestDto<T>> logRequests) {
+        for (LogRequestDto<T> request : logRequests) {
+            createLog(request.getOldObj(), request.getNewObj(), request.getClazz(), 
+                     request.getDocumentId(), request.getDocKeyPoid(), request.getLogDetail());
+        }
     }
 
 }
