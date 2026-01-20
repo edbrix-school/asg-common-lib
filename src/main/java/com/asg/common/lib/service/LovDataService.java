@@ -428,7 +428,7 @@ public class LovDataService {
             return new LovGetListDto();
 
         LovGetListDto dto = new LovGetListDto();
-        Map<String, Object> listValue = this.getLovList(poid.toString(), UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
+        Map<String, Object> listValue = this.getLovList("", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
                 "", ""
