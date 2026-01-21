@@ -37,7 +37,6 @@ public class CurrencyEntity {
     private Long groupPoid;
 
     @Column(name = "CURRENCY_CODE", nullable = false)
-    @AuditIgnore
     private String currencyCode;
 
     @Column(name = "CURRENCY_NAME", unique = true)
