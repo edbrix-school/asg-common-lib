@@ -155,11 +155,9 @@ public class Company {
     private String accountPerson;
 
     @Column(name = "STOCK_PERIOD_START")
-    @AuditIgnore
     private Date stockPeriodStart;  //inv_period_start
 
     @Column(name = "STOCK_PERIOD_END")
-    @AuditIgnore
     private Date stockPeriodEnd;    //inv_period_end
 
     @Column(name = "VAT_FILING_PERIOD")
