@@ -56,7 +56,6 @@ public class CurrencyEntity {
     private String numberFormatCurrency;
 
     @Column(name = "SEQNO")
-    @AuditIgnore
     private Integer seqno;
 
     @Column(name = "ACTIVE", length = 1)

@@ -103,7 +103,6 @@ public class Company {
     private String active;
 
     @Column(name = "SEQNO")
-    @AuditIgnore
     private Integer seqNo;
 
     @Column(name = "CREATED_BY")
