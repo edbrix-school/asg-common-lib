@@ -188,4 +188,30 @@ public class LoggingService {
         }
     }
 
+    public <T> String getEntityDataString(T entity) {
+        if (entity == null) return "";
+        
+        StringBuilder rowData = new StringBuilder();
+        java.lang.reflect.Field[] fields = entity.getClass().getDeclaredFields();
+        
+        for (java.lang.reflect.Field field : fields) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(entity);
+                if (value != null && !value.toString().isEmpty()) {
+                    rowData.append(field.getName()).append("=").append(value).append(";");
+                }
+            } catch (IllegalAccessException e) {
+                log.warn("Unable to access field: {}", field.getName());
+            }
+        }
+        
+        return rowData.toString();
+    }
+
+    public <T> void logDelete(T entity, String docId, String docKeyPoid) {
+        String rowData = getEntityDataString(entity);
+        createLogSummaryEntry(docId, docKeyPoid, "Row Deleted : " + rowData);
+    }
+
 }
