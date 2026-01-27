@@ -98,7 +98,7 @@ public class DocumentDeleteService {
 
         } catch (SQLException e) {
             log.error("Error deleting document", e);
-            throw new RuntimeException("Error deleting document: " + e.getMessage(), e);
+            throw new ValidationException("Error deleting document: " + e.getMessage());
         }
     }
 }

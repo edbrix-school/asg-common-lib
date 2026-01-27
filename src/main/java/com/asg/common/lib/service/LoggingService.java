@@ -60,6 +60,10 @@ public class LoggingService {
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
+        if (logType.equals(LogDetailsEnum.VIEWED) || logType.equals(LogDetailsEnum.MODIFIED)) {
+            logDetails = logType.getDescription();
+        }
+
         createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
 
