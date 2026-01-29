@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.sql.Blob;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,7 +36,7 @@ public class ExcelExportService {
         Long userPoid = UserContext.getUserPoid();
         List<ExcelSheetConfig> sheets = repository.getExcelConfig(groupPoid, companyPoid, userPoid, docId, docKeyPoid, parameters);
         
-        try (XSSFWorkbook workbook = createWorkbook(sheets.get(0));
+        try (XSSFWorkbook workbook = createWorkbook(sheets.getFirst());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             
             for (ExcelSheetConfig sheet : sheets) {
@@ -317,8 +319,19 @@ public class ExcelExportService {
         if (parameters == null || parameters.isEmpty()) {
             return null;
         }
+        Map<String, Object> modifiedParams = new HashMap<>(parameters);
+        
+        // Convert COMPANY_POID from list [1,2] to Comma Seprated String 1,2
+        Object companyPoid = modifiedParams.get("COMPANY_POID");
+        if (companyPoid instanceof List<?> companyList) {
+            String commaSeparated = companyList.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
+            modifiedParams.put("COMPANY_POID", commaSeparated);
+        }
+        
         StringBuilder result = new StringBuilder();
-        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+        for (Map.Entry<String, Object> entry : modifiedParams.entrySet()) {
             if (!result.isEmpty()) {
                 result.append(";");
             }
