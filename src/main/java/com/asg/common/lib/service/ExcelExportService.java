@@ -34,7 +34,7 @@ public class ExcelExportService {
         Long userPoid = UserContext.getUserPoid();
         List<ExcelSheetConfig> sheets = repository.getExcelConfig(groupPoid, companyPoid, userPoid, docId, docKeyPoid, parameters);
         
-        try (XSSFWorkbook workbook = createWorkbook(sheets.get(0));
+        try (XSSFWorkbook workbook = createWorkbook(sheets.getFirst());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             
             for (ExcelSheetConfig sheet : sheets) {

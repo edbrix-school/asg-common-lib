@@ -77,6 +77,14 @@ public class DynamicReportService {
         for (Map<String, Object> filterRow : dbFilters) {
             String colName = filterRow.get("SQL_COLUMN_NAME").toString().trim();
             String filterType = filterRow.get("FILTER_TYPE").toString();
+            
+            if (filterType.contains("Date") && finalFilters.containsKey(colName)) {
+                finalFilters.put(colName, formatFilterValue(finalFilters.get(colName), filterType));
+            }
+            if (filterType.contains("Date") && finalFilters.containsKey(colName + "2")) {
+                finalFilters.put(colName + "2", formatFilterValue(finalFilters.get(colName + "2"), filterType));
+            }
+            
             if (!finalFilters.containsKey(colName)) {
                 Object colValue = filterRow.get("DEFAULT_VALUE");
                 if (colValue != null) {
@@ -98,11 +106,19 @@ public class DynamicReportService {
                 return getDateFormatString(date);
             } catch (Exception e) {
                 try {
-                    SimpleDateFormat formatter = new SimpleDateFormat("dd-MMM-yyyy");
-                    java.util.Date date = formatter.parse(value.toString());
+                    // Try parsing UI format first (yyyy-MM-dd)
+                    SimpleDateFormat uiFormatter = new SimpleDateFormat("yyyy-MM-dd");
+                    java.util.Date date = uiFormatter.parse(value.toString());
                     return getDateFormatString(date);
-                } catch (ParseException pe) {
-                    return value.toString();
+                } catch (ParseException pe1) {
+                    try {
+                        // Fallback to dd-MMM-yyyy format
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd-MMM-yyyy");
+                        java.util.Date date = formatter.parse(value.toString());
+                        return getDateFormatString(date);
+                    } catch (ParseException pe2) {
+                        return value.toString();
+                    }
                 }
             }
         }
@@ -146,7 +162,7 @@ public class DynamicReportService {
         if (defValueType == null) return null;
         switch (defValueType) {
             case "#MONTH#":
-                defValue2 = getDateMonthEnd((Date) new java.util.Date());
+                defValue2 = getDateMonthEnd(new java.util.Date());
                 break;
             case "#MONTH_TODAY#":
                 defValue2 = new java.util.Date();
@@ -202,7 +218,7 @@ public class DynamicReportService {
         }
     }
 
-    private Date getDateMonthEnd(Date date) {
+    private Date getDateMonthEnd(java.util.Date date) {
         try {
             Calendar cal = Calendar.getInstance(); // locale-specific
             cal.setTime(date);
