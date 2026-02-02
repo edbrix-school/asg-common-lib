@@ -79,5 +79,10 @@ public class CompanyDivisionEntity {
     @Transient
     @AuditIgnore
     public String actionType;
+
+    @Transient
+    @AuditIgnore
+    public Long detRowId;
+
 }
 

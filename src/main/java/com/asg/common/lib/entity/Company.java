@@ -103,7 +103,6 @@ public class Company {
     private String active;
 
     @Column(name = "SEQNO")
-    @AuditIgnore
     private Integer seqNo;
 
     @Column(name = "CREATED_BY")
@@ -155,11 +154,9 @@ public class Company {
     private String accountPerson;
 
     @Column(name = "STOCK_PERIOD_START")
-    @AuditIgnore
     private Date stockPeriodStart;  //inv_period_start
 
     @Column(name = "STOCK_PERIOD_END")
-    @AuditIgnore
     private Date stockPeriodEnd;    //inv_period_end
 
     @Column(name = "VAT_FILING_PERIOD")
@@ -180,28 +177,24 @@ public class Company {
     private String financialDateUpdatedBy;
 
     @Column(name = "FINANCIAL_DATE_UPDATED_DATE")
-    @AuditIgnore
     private Date financialDateUpdatedDate;
 
     @Column(name = "TRANS_DATE_UPDATED_BY")
     private String transDateUpdatedBy;
 
     @Column(name = "TRANS_DATE_UPDATED_DATE")
-    @AuditIgnore
     private Date transDateUpdatedDate;
 
     @Column(name = "REPORT_DATE_UPDATED_BY")
     private String reportDateUpdatedBy;
 
     @Column(name = "REPORT_DATE_UPDATED_DATE")
-    @AuditIgnore
     private Date reportDateUpdatedDate;
 
     @Column(name = "INVENTORY_DATE_UPDATED_BY")
     private String inventoryDateUpdatedBy;
 
     @Column(name = "INVENTORY_DATE_UPDATED_DATE")
-    @AuditIgnore
     private Date inventoryDateUpdatedDate;
 
     @Transient  //doesnt map to field in db

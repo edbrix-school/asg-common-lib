@@ -117,6 +117,7 @@ public class DocumentEntity {
     private String defaultListPeriod;
 
     @Column(name = "DELETED", length = 1)
+    @AuditIgnore
     private String deleted;
 
     @Column(name = "ATTACHMENT_CHECKLIST", length = 200)

@@ -136,7 +136,7 @@ public final class DiffUtil {
         return switch (value) {
             case null -> null;
             case Timestamp ts -> ts.toInstant();
-            case java.sql.Date sqlDate -> ((Date) sqlDate).toInstant();
+            case java.sql.Date sqlDate -> new Date(sqlDate.getTime()).toInstant();
             case Date d -> d.toInstant();
             case Instant i -> i;
             case LocalDateTime ldt ->
@@ -159,7 +159,7 @@ public final class DiffUtil {
 
         return switch (value) {
             case Timestamp ts -> ts.toInstant().toString();
-            case java.sql.Date sqlDate -> ((Date) sqlDate).toInstant().toString();
+            case java.sql.Date sqlDate -> new Date(sqlDate.getTime()).toInstant().toString();
             case Date d -> d.toInstant().toString();
             case Instant i -> i.toString();
             case LocalDateTime ldt -> ldt.toString();
