@@ -320,16 +320,25 @@ public class ExcelExportService {
             return null;
         }
         Map<String, Object> modifiedParams = new HashMap<>(parameters);
-        
-        // Convert COMPANY_POID from list [1,2] to Comma Seprated String 1,2
+
+        // Handle COMPANY_POID parameter - single value or CSV
         Object companyPoid = modifiedParams.get("COMPANY_POID");
         if (companyPoid instanceof List<?> companyList) {
-            String commaSeparated = companyList.stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(","));
-            modifiedParams.put("COMPANY_POID", commaSeparated);
+            // 999 - All Companies Check
+            boolean contains999 = companyList.contains(999) || companyList.contains("999");
+            if (companyList.size() == 1 || contains999) {
+                // Single value or contains 999 - keep as COMPANY_POID
+                modifiedParams.put("COMPANY_POID", companyList.getFirst());
+            } else {
+                // Multiple values - add as CSV
+                String commaSeparated = companyList.stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining(","));
+                modifiedParams.put("COMPANY_POID_CSV", commaSeparated);
+                modifiedParams.put("COMPANY_POID", companyList.getFirst());
+            }
         }
-        
+
         StringBuilder result = new StringBuilder();
         for (Map.Entry<String, Object> entry : modifiedParams.entrySet()) {
             if (!result.isEmpty()) {
