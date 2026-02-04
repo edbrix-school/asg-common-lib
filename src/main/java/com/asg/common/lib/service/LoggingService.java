@@ -59,14 +59,16 @@ public class LoggingService {
     // INSERT SUMMARY LOG (PROC_UPDATE_LOG_SUMMARY)
     // ----------------------------------------------------------
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
+
+        if (LogDetailsEnum.VIEWED.equals(logType) && BooleanUtils.isFalse(UserContext.isLogEnabled()))
+            return;
+        
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
         if (logType.equals(LogDetailsEnum.VIEWED) || logType.equals(LogDetailsEnum.MODIFIED)) {
             logDetails = logType.getDescription();
         }
-        System.out.println(UserContext.isLogEnabled());
-        if (LogDetailsEnum.VIEWED.equals(logType) && BooleanUtils.isFalse(UserContext.isLogEnabled()))
-            return;
+        
 
         createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
