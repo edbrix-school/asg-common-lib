@@ -60,7 +60,7 @@ public class UserContext {
 
     public static Boolean isLogEnabled() {
         CustomAuthDetails details = getCurrentUser();
-        return details != null ? details.getLogEnabled() : null;
+        return details != null ? details.getLogEnabled() : true;
     }
 
     public static void clear() {
