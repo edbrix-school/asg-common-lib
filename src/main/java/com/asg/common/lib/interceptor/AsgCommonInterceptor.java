@@ -35,11 +35,15 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
             String companyPoidStr = request.getHeader("X-Company-Poid");
             String userEmail = request.getHeader("X-User-Email");
             String userRole = request.getHeader("X-User-Role");
+            String logEnabledStr = request.getHeader("X-Log-Enabled");
 
             if (StringUtils.hasText(userId)) {
                 Long userPoid = StringUtils.hasText(userPoidStr) ? Long.parseLong(userPoidStr) : null;
                 Long groupPoid = StringUtils.hasText(groupPoidStr) ? Long.parseLong(groupPoidStr) : null;
                 Long companyPoid = StringUtils.hasText(companyPoidStr) ? Long.parseLong(companyPoidStr) : null;
+
+                Boolean logEnabled = !StringUtils.hasText(logEnabledStr)
+                        || Boolean.parseBoolean(logEnabledStr);
 
                 CustomAuthDetails authDetails = CustomAuthDetails.builder()
                         .actionRequested(actionRequested)
@@ -51,6 +55,7 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
                         .companyPoid(companyPoid)
                         .userEmail(userEmail)
                         .userRole(userRole)
+                        .logEnabled(logEnabled)
                         .build();
 
                 UserContext.setCurrentUser(authDetails);

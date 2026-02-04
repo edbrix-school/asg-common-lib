@@ -9,6 +9,7 @@ import com.asg.common.lib.repository.LoggingRepository;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.utility.DiffUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,6 +64,9 @@ public class LoggingService {
         if (logType.equals(LogDetailsEnum.VIEWED) || logType.equals(LogDetailsEnum.MODIFIED)) {
             logDetails = logType.getDescription();
         }
+        System.out.println(UserContext.isLogEnabled());
+        if (LogDetailsEnum.VIEWED.equals(logType) && BooleanUtils.isFalse(UserContext.isLogEnabled()))
+            return;
 
         createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
