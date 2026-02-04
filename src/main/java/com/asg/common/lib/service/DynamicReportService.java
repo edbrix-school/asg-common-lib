@@ -148,7 +148,7 @@ public class DynamicReportService {
                 defValue1 = getDateTruncated((Date) new java.util.Date());
                 break;
             case "#LOGIN_COMPANY_POID#":
-                defValue1 = new BigDecimal(1); // This would come from session
+                defValue1 = getCompanyPoid();
                 break;
             default:
                 defValue1 = defValueType;
