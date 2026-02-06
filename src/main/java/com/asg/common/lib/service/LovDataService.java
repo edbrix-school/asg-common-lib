@@ -113,72 +113,153 @@ public class LovDataService {
                             result.add(dto);
                         }
 
-                    // Find default values
-                    List<LovGetListDto> defaultValues = new ArrayList<>();
-                    if (defaultPoid != null && !defaultPoid.isEmpty()) {
-                        defaultValues = result.stream()
-                                .filter(dto -> defaultPoid.contains(dto.getPoid()))
-                                .collect(Collectors.toList());
-                    } else if (defaultCode != null && !defaultCode.isEmpty()) {
-                        defaultValues = result.stream()
-                                .filter(dto -> defaultCode.contains(dto.getCode()))
-                                .collect(Collectors.toList());
-                    }
+                        // Find default values
+                        List<LovGetListDto> defaultValues = new ArrayList<>();
+                        if (defaultPoid != null && !defaultPoid.isEmpty()) {
+                            defaultValues = result.stream()
+                                    .filter(dto -> defaultPoid.contains(dto.getPoid()))
+                                    .collect(Collectors.toList());
+                        } else if (defaultCode != null && !defaultCode.isEmpty()) {
+                            defaultValues = result.stream()
+                                    .filter(dto -> defaultCode.contains(dto.getCode()))
+                                    .collect(Collectors.toList());
+                        }
 
-                    // ✅ Apply client-side filtering after reading all rows
-                    if (filter != null && !filter.trim().isEmpty() && !SKIP_FILTER_LOV_NAMES.contains(lovName)) {
-                        String filterLower = filter.trim().toLowerCase();
-                        result = result.stream()
+                        boolean needsFallback = false;
 
-                                .filter(dto ->
-                                                (dto.getValue()!=null && dto.getPoid().toString().toLowerCase().contains(filterLower))||
-                                                (dto.getCode() != null && dto.getCode().toLowerCase().contains(filterLower)) ||
-                                                (dto.getDescription() != null && dto.getDescription().toLowerCase().contains(filterLower)) ||
-                                                (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)) ||
-                                                (dto.getUsers() != null && dto.getUsers().toLowerCase().contains(filterLower)))
-                                .collect(Collectors.toList());
-                    }
-                    // Sorting
-                    String safeSortDir = (sortDir != null &&
-                            (sortDir.equalsIgnoreCase("asc") || sortDir.equalsIgnoreCase("desc")))
-                            ? sortDir.toLowerCase()
-                            : "asc";
+                        if (defaultPoid != null && !defaultPoid.isEmpty()) {
 
-                    Comparator<LovGetListDto> comparator = switch (sortBy != null ? sortBy.toLowerCase() : "") {
-                        case "code" ->
-                                Comparator.comparing(LovGetListDto::getCode, Comparator.nullsLast(String::compareToIgnoreCase));
-                        case "description" ->
-                                Comparator.comparing(LovGetListDto::getDescription, Comparator.nullsLast(String::compareToIgnoreCase));
-                        case "label" ->
-                                Comparator.comparing(LovGetListDto::getLabel, Comparator.nullsLast(String::compareToIgnoreCase));
-                        case "value" ->
-                                Comparator.comparing(LovGetListDto::getValue, Comparator.nullsLast(Long::compare));
-                        case "seqno" ->
-                                Comparator.comparing(LovGetListDto::getSeqNo, Comparator.nullsLast(Integer::compare));
-                        case "poid" ->
-                                Comparator.comparing(LovGetListDto::getPoid, Comparator.nullsLast(Long::compare));
-                        default ->
-                                Comparator.comparing(LovGetListDto::getSeqNo, Comparator.nullsLast(Integer::compare));
-                    };
+                            Set<Long> foundPoids = defaultValues.stream()
+                                    .map(LovGetListDto::getPoid)
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toSet());
 
-                    if ("desc".equalsIgnoreCase(safeSortDir)) comparator = comparator.reversed();
-                    result.sort(comparator);
+                            if (!foundPoids.containsAll(defaultPoid)) {
+                                needsFallback = true;
+                            }
+                        }
+
+                        if (defaultCode != null && !defaultCode.isEmpty()) {
+
+                            Set<String> foundCodes = defaultValues.stream()
+                                    .map(LovGetListDto::getCode)
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toSet());
+
+                            if (!foundCodes.containsAll(defaultCode)) {
+                                needsFallback = true;
+                            }
+                        }
+
+                        if (needsFallback) {
+
+                            log.info("Some default values missing. Calling PROC_LOV_GET_FULL_LIST for lovName: {}", lovName);
+
+                            try (CallableStatement fullCs = cs.getConnection()
+                                    .prepareCall("{call PROC_LOV_GET_FULL_LIST(?, ?, ?, ?, ?, ?, ?)}")) {
+
+                                fullCs.setLong(1, groupPoid != null ? groupPoid : 1L);
+                                fullCs.setLong(2, companyPoid != null ? companyPoid : 1L);
+                                fullCs.setLong(3, userPoid != null ? userPoid : 0L);
+                                fullCs.setString(4, lovName != null ? lovName : "");
+                                fullCs.setString(5, filterField != null ? filterField : "");
+                                fullCs.setString(6, ""); // no filter
+                                fullCs.registerOutParameter(7, OracleTypes.CURSOR);
+
+                                fullCs.execute();
+
+                                try (ResultSet fullRs = (ResultSet) fullCs.getObject(7)) {
+
+                                    while (fullRs != null && fullRs.next()) {
+
+                                        Long poid = fullRs.getLong("POID");
+                                        String code = fullRs.getString("CODE");
+
+                                        boolean matchPoid = defaultPoid != null && defaultPoid.contains(poid);
+                                        boolean matchCode = defaultCode != null && code != null && defaultCode.contains(code);
+
+                                        if (matchPoid || matchCode) {
+
+                                            boolean alreadyExists = defaultValues.stream()
+                                                    .anyMatch(d -> Objects.equals(d.getPoid(), poid));
+
+                                            if (!alreadyExists) {
+
+                                                LovGetListDto dto = new LovGetListDto();
+                                                dto.setPoid(poid);
+                                                dto.setCode(code);
+                                                dto.setDescription(fullRs.getString("DESCRIPTION"));
+                                                dto.setLabel(fullRs.getString("DESCRIPTION"));
+                                                dto.setValue(poid);
+
+                                                try {
+                                                    dto.setSeqNo(fullRs.getInt("SEQNO"));
+                                                } catch (SQLException ignored) {
+                                                    dto.setSeqNo(0);
+                                                }
+
+                                                defaultValues.add(dto);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ✅ Apply client-side filtering after reading all rows
+                        if (filter != null && !filter.trim().isEmpty() && !SKIP_FILTER_LOV_NAMES.contains(lovName)) {
+                            String filterLower = filter.trim().toLowerCase();
+                            result = result.stream()
+
+                                    .filter(dto ->
+                                            (dto.getValue() != null && dto.getPoid().toString().toLowerCase().contains(filterLower)) ||
+                                                    (dto.getCode() != null && dto.getCode().toLowerCase().contains(filterLower)) ||
+                                                    (dto.getDescription() != null && dto.getDescription().toLowerCase().contains(filterLower)) ||
+                                                    (dto.getLabel() != null && dto.getLabel().toLowerCase().contains(filterLower)) ||
+                                                    (dto.getUsers() != null && dto.getUsers().toLowerCase().contains(filterLower)))
+                                    .collect(Collectors.toList());
+                        }
+                        // Sorting
+                        String safeSortDir = (sortDir != null &&
+                                (sortDir.equalsIgnoreCase("asc") || sortDir.equalsIgnoreCase("desc")))
+                                ? sortDir.toLowerCase()
+                                : "asc";
+
+                        Comparator<LovGetListDto> comparator = switch (sortBy != null ? sortBy.toLowerCase() : "") {
+                            case "code" ->
+                                    Comparator.comparing(LovGetListDto::getCode, Comparator.nullsLast(String::compareToIgnoreCase));
+                            case "description" ->
+                                    Comparator.comparing(LovGetListDto::getDescription, Comparator.nullsLast(String::compareToIgnoreCase));
+                            case "label" ->
+                                    Comparator.comparing(LovGetListDto::getLabel, Comparator.nullsLast(String::compareToIgnoreCase));
+                            case "value" ->
+                                    Comparator.comparing(LovGetListDto::getValue, Comparator.nullsLast(Long::compare));
+                            case "seqno" ->
+                                    Comparator.comparing(LovGetListDto::getSeqNo, Comparator.nullsLast(Integer::compare));
+                            case "poid" ->
+                                    Comparator.comparing(LovGetListDto::getPoid, Comparator.nullsLast(Long::compare));
+                            default ->
+                                    Comparator.comparing(LovGetListDto::getSeqNo, Comparator.nullsLast(Integer::compare));
+                        };
+
+                        if ("desc".equalsIgnoreCase(safeSortDir)) comparator = comparator.reversed();
+                        result.sort(comparator);
 
 
-                    List<LovGetListDto> paginatedList;
-                    if (pageSize <= 0 || SKIP_FILTER_LOV_NAMES.contains(lovName)) {
-                        paginatedList = result; // return all
-                    } else {
-                        int fromIndex = Math.max(pageNumber * pageSize, 0);
-                        int toIndex = Math.min(fromIndex + pageSize, result.size());
-                        paginatedList = (fromIndex < result.size()) ? result.subList(fromIndex, toIndex) : new ArrayList<>();
-                    }
+                        List<LovGetListDto> paginatedList;
+                        if (pageSize <= 0 || SKIP_FILTER_LOV_NAMES.contains(lovName)) {
+                            paginatedList = result; // return all
+                        } else {
+                            int fromIndex = Math.max(pageNumber * pageSize, 0);
+                            int toIndex = Math.min(fromIndex + pageSize, result.size());
+                            paginatedList = (fromIndex < result.size()) ? result.subList(fromIndex, toIndex) : new ArrayList<>();
+                        }
 
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("totalRecords", result.size());
-                    response.put("data", paginatedList);
-                    response.put("defaultValues", defaultValues);
-                    return response;
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("totalRecords", result.size());
+                        response.put("data", paginatedList);
+                        response.put("defaultValues", defaultValues);
+                        return response;
                     }
                 }
         );
@@ -397,6 +478,7 @@ public class LovDataService {
         }
         return dto;
     }
+
     public LovGetListDto getLovItemByCodeFast(String code, String lovName) {
         log.info("Fetching LOV item (fast) - code: {}, lovName: {}, groupPoid: {}, companyPoid: {}, userPoid: {}",
                 code, lovName, UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid());
