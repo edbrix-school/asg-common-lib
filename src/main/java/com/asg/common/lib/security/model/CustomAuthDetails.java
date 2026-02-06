@@ -10,6 +10,7 @@ public class CustomAuthDetails {
     private Long companyPoid;
     private String userEmail;
     private String userRole;
+    private Boolean logEnabled = true;
 
     public CustomAuthDetails() {
     }
@@ -86,6 +87,14 @@ public class CustomAuthDetails {
         this.userRole = userRole;
     }
 
+    public Boolean getLogEnabled() {
+        return logEnabled;
+    }
+
+    public void setLogEnabled(Boolean logEnabled) {
+        this.logEnabled = logEnabled;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -100,6 +109,7 @@ public class CustomAuthDetails {
         private Long companyPoid;
         private String userEmail;
         private String userRole;
+        private Boolean logEnabled;
 
         public Builder actionRequested(String actionRequested) {
             this.actionRequested = actionRequested;
@@ -146,6 +156,11 @@ public class CustomAuthDetails {
             return this;
         }
 
+        public Builder logEnabled(Boolean logEnabled) {
+            this.logEnabled = logEnabled;
+            return this;
+        }
+
         public CustomAuthDetails build() {
             CustomAuthDetails details = new CustomAuthDetails();
             details.setActionRequested(this.actionRequested);
@@ -157,6 +172,7 @@ public class CustomAuthDetails {
             details.setCompanyPoid(this.companyPoid);
             details.setUserEmail(this.userEmail);
             details.setUserRole(this.userRole);
+            details.setLogEnabled(this.logEnabled);
             return details;
         }
     }

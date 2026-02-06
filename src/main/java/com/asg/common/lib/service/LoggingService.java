@@ -9,6 +9,7 @@ import com.asg.common.lib.repository.LoggingRepository;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.utility.DiffUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -58,11 +59,16 @@ public class LoggingService {
     // INSERT SUMMARY LOG (PROC_UPDATE_LOG_SUMMARY)
     // ----------------------------------------------------------
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
+
+        if (LogDetailsEnum.VIEWED.equals(logType) && BooleanUtils.isFalse(UserContext.isLogEnabled()))
+            return;
+        
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
         if (logType.equals(LogDetailsEnum.VIEWED) || logType.equals(LogDetailsEnum.MODIFIED)) {
             logDetails = logType.getDescription();
         }
+        
 
         createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
