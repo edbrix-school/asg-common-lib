@@ -4,9 +4,14 @@ import com.asg.common.lib.security.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimplePdfExporterConfiguration;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.util.HashMap;
@@ -57,6 +62,15 @@ public class PrintService {
         try (Connection conn = dataSource.getConnection()) {
             params.put("REPORT_CLASS_LOADER", PrintService.class.getClassLoader());
             JasperPrint jasperPrint = JasperFillManager.fillReport(report, params, conn);
+            JRPdfExporter exporter = new JRPdfExporter();
+            exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
+            SimplePdfExporterConfiguration configuration = new SimplePdfExporterConfiguration();
+            if (params.containsKey("REPORT_TITLE")) {
+                configuration.setMetadataTitle(params.get("REPORT_TITLE").toString());
+            }
+            exporter.setConfiguration(configuration);
             return JasperExportManager.exportReportToPdf(jasperPrint);
         }
     }
