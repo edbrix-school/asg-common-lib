@@ -71,7 +71,8 @@ public class PrintService {
                 configuration.setMetadataTitle(params.get("REPORT_TITLE").toString());
             }
             exporter.setConfiguration(configuration);
-            return JasperExportManager.exportReportToPdf(jasperPrint);
+            exporter.exportReport();
+            return outputStream.toByteArray();
         }
     }
 
