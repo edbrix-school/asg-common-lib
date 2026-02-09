@@ -441,7 +441,7 @@ public class LovDataService {
         Map<String, Object> listValue = this.getLovList("", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
-                "", ""
+                "", "", null, List.of(poid)
         );
         if (listValue != null) {
             @SuppressWarnings("unchecked")
@@ -466,7 +466,8 @@ public class LovDataService {
         Map<String, Object> listValue = this.getLovList("", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
-                "", ""
+                "", "",
+                List.of(code), null
         );
         if (listValue != null) {
             @SuppressWarnings("unchecked")
@@ -488,7 +489,7 @@ public class LovDataService {
         }
 
         Map<String, Object> listValue = this.getLovList(code, UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
-                lovName, 0, 0, "", "");
+                lovName, 0, 0, "", "", List.of(code), null);
 
         if (listValue != null) {
             @SuppressWarnings("unchecked")
@@ -513,7 +514,7 @@ public class LovDataService {
         Map<String, Object> listValue = this.getLovList(poid.toString(), UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
-                "", ""
+                "", "", null, List.of(poid)
         );
         if (listValue != null) {
             @SuppressWarnings("unchecked")
