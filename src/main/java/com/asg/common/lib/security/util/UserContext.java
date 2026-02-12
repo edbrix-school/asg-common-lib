@@ -63,6 +63,11 @@ public class UserContext {
         return details != null ? details.getLogEnabled() : true;
     }
 
+    public static String getTimeZoneCode() {
+        CustomAuthDetails details = getCurrentUser();
+        return details != null ? details.getTimeZoneCode() : null;
+    }
+
     public static void clear() {
         userContext.remove();
     }
