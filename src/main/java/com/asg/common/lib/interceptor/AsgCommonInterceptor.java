@@ -36,6 +36,7 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
             String userEmail = request.getHeader("X-User-Email");
             String userRole = request.getHeader("X-User-Role");
             String logEnabledStr = request.getHeader("X-Log-Enabled");
+            String timeZoneCode = request.getHeader("X-TimeZone-Code");
 
             if (StringUtils.hasText(userId)) {
                 Long userPoid = StringUtils.hasText(userPoidStr) ? Long.parseLong(userPoidStr) : null;
@@ -56,6 +57,7 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
                         .userEmail(userEmail)
                         .userRole(userRole)
                         .logEnabled(logEnabled)
+                        .timeZoneCode(timeZoneCode)
                         .build();
 
                 UserContext.setCurrentUser(authDetails);
