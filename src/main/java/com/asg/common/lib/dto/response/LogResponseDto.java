@@ -4,13 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class LogResponseDto {
-    private Timestamp logDateTime;
+    private LocalDateTime logDateTime;
     private String userName;
     private Long logUserPoid;
     private String logDetails;
