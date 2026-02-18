@@ -1,8 +1,10 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DiffObject;
+import com.asg.common.lib.dto.request.LogFilterRequest;
 import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.dto.response.LogResponseDto;
+import com.asg.common.lib.dto.response.PagedLogResponse;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.LoggingRepository;
@@ -53,6 +55,32 @@ public class LoggingService {
 
         return loggingRepository.getLogData(groupPoid, companyPoid, docId, docKeyPoid, "Details")
                 .stream().map(this::mapToLogResponseDto).toList();
+    }
+
+    // ----------------------------------------------------------
+    // READ SUMMARY LOGS WITH PAGINATION AND FILTERS
+    // ----------------------------------------------------------
+    public PagedLogResponse getLogSummaryPaged(String docId, Long docKeyPoid, LogFilterRequest filter) {
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+
+        Map<String, Object> result = loggingRepository.getLogDataWithPagination(
+                groupPoid, companyPoid, docId, docKeyPoid, "Summary", filter);
+
+        return mapToPagedResponse(result);
+    }
+
+    // ----------------------------------------------------------
+    // READ DETAIL LOGS WITH PAGINATION AND FILTERS
+    // ----------------------------------------------------------
+    public PagedLogResponse getDetailedLogsPaged(String docId, Long docKeyPoid, LogFilterRequest filter) {
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+
+        Map<String, Object> result = loggingRepository.getLogDataWithPagination(
+                groupPoid, companyPoid, docId, docKeyPoid, "Details", filter);
+
+        return mapToPagedResponse(result);
     }
 
     // ----------------------------------------------------------
@@ -125,6 +153,23 @@ public class LoggingService {
                 (String) row.get("fieldName"),
                 (String) row.get("oldValue"),
                 (String) row.get("newValue")
+        );
+    }
+
+    // ----------------------------------------------------------
+    // MAP PAGINATED RESULT TO DTO
+    // ----------------------------------------------------------
+    @SuppressWarnings("unchecked")
+    private PagedLogResponse mapToPagedResponse(Map<String, Object> result) {
+        List<Map<String, Object>> content = (List<Map<String, Object>>) result.get("content");
+        List<LogResponseDto> logs = content.stream().map(this::mapToLogResponseDto).toList();
+
+        return new PagedLogResponse(
+                logs,
+                (Integer) result.get("page"),
+                (Integer) result.get("size"),
+                (Long) result.get("totalElements"),
+                (Integer) result.get("totalPages")
         );
     }
     public <T> void logChanges(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, LogDetailsEnum logType, String keyIdLabel) {
