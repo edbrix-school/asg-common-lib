@@ -2,6 +2,7 @@ package com.asg.common.lib.utility;
 
 import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.DiffObject;
+import com.asg.common.lib.security.util.UserContext;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.lang.reflect.Field;
@@ -25,11 +26,10 @@ public final class DiffUtil {
     private DiffUtil() {
     }
 
-    /**
-     * Zone used for all date/time normalization.
-     * Prefer UTC for audit consistency.
-     */
-    private static final ZoneId AUDIT_ZONE = ZoneId.of("UTC");
+    private static ZoneId getUserZoneId() {
+        String timeZoneCode = UserContext.getTimeZoneCode();
+        return ZoneId.of(timeZoneCode);
+    }
 
     public static <T> List<DiffObject> createDiffList(
             T oldEntity,
@@ -107,14 +107,14 @@ public final class DiffUtil {
             case LocalDateTime ignored -> {
                 Instant instant = extractInstant(newValue);
                 yield instant != null
-                        ? LocalDateTime.ofInstant(instant, AUDIT_ZONE)
+                        ? instant.atZone(getUserZoneId()).toLocalDateTime()
                         : newValue;
             }
 
             case LocalDate ignored -> {
                 Instant instant = extractInstant(newValue);
                 yield instant != null
-                        ? instant.atZone(AUDIT_ZONE).toLocalDate()
+                        ? instant.atZone(getUserZoneId()).toLocalDate()
                         : newValue;
             }
 
@@ -140,9 +140,9 @@ public final class DiffUtil {
             case Date d -> d.toInstant();
             case Instant i -> i;
             case LocalDateTime ldt ->
-                    ldt.atZone(AUDIT_ZONE).toInstant();
+                    ldt.atZone(getUserZoneId()).toInstant();
             case LocalDate ld ->
-                    ld.atStartOfDay(AUDIT_ZONE).toInstant();
+                    ld.atStartOfDay(getUserZoneId()).toInstant();
             case OffsetDateTime odt -> odt.toInstant();
             case ZonedDateTime zdt -> zdt.toInstant();
             default -> null;

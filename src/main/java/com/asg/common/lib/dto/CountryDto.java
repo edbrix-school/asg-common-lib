@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -24,7 +24,7 @@ public class CountryDto {
     private Integer seqNo;
     private Double countryTicketRate;
     private String createdBy;
-    private OffsetDateTime createdDate;
+    private LocalDateTime createdDate;
     private String lastModifiedBy;
-    private OffsetDateTime lastModifiedDate;
+    private LocalDateTime lastModifiedDate;
 }

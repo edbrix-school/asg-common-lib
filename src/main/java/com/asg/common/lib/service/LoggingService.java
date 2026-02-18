@@ -1,12 +1,15 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DiffObject;
+import com.asg.common.lib.dto.request.LogFilterRequest;
 import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.dto.response.LogResponseDto;
+import com.asg.common.lib.dto.response.PagedLogResponse;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.LoggingRepository;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.utility.DateUtil;
 import com.asg.common.lib.utility.DiffUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -56,6 +59,32 @@ public class LoggingService {
     }
 
     // ----------------------------------------------------------
+    // READ SUMMARY LOGS WITH PAGINATION AND FILTERS
+    // ----------------------------------------------------------
+    public PagedLogResponse getLogSummaryPaged(String docId, Long docKeyPoid, LogFilterRequest filter) {
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+
+        Map<String, Object> result = loggingRepository.getLogDataWithPagination(
+                groupPoid, companyPoid, docId, docKeyPoid, "Summary", filter);
+
+        return mapToPagedResponse(result);
+    }
+
+    // ----------------------------------------------------------
+    // READ DETAIL LOGS WITH PAGINATION AND FILTERS
+    // ----------------------------------------------------------
+    public PagedLogResponse getDetailedLogsPaged(String docId, Long docKeyPoid, LogFilterRequest filter) {
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+
+        Map<String, Object> result = loggingRepository.getLogDataWithPagination(
+                groupPoid, companyPoid, docId, docKeyPoid, "Details", filter);
+
+        return mapToPagedResponse(result);
+    }
+
+    // ----------------------------------------------------------
     // INSERT SUMMARY LOG (PROC_UPDATE_LOG_SUMMARY)
     // ----------------------------------------------------------
     public void createLogSummaryEntry(LogDetailsEnum logType, String docId, String docKeyPoid) {
@@ -97,7 +126,7 @@ public class LoggingService {
                      "{call PROC_UPDATE_LOG_DETAILS(?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
 
             stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());      // P_LOGDATETIME
             stmt.setString(3, logDetails);                             // P_LOGDETAILS
             stmt.setString(4, docId);                                  // P_LOG_DOC_ID
             stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
@@ -117,14 +146,32 @@ public class LoggingService {
     // MAP RESULT SET TO DTO
     // ----------------------------------------------------------
     private LogResponseDto mapToLogResponseDto(Map<String, Object> row) {
+        Timestamp ts = (Timestamp) row.get("logDateTime");
         return new LogResponseDto(
-                (Timestamp) row.get("logDateTime"),
+                ts != null ? ts.toLocalDateTime() : null,
                 (String) row.get("userName"),
                 (Long) row.get("logUserPoid"),
                 (String) row.get("logDetails"),
                 (String) row.get("fieldName"),
                 (String) row.get("oldValue"),
                 (String) row.get("newValue")
+        );
+    }
+
+    // ----------------------------------------------------------
+    // MAP PAGINATED RESULT TO DTO
+    // ----------------------------------------------------------
+    @SuppressWarnings("unchecked")
+    private PagedLogResponse mapToPagedResponse(Map<String, Object> result) {
+        List<Map<String, Object>> content = (List<Map<String, Object>>) result.get("content");
+        List<LogResponseDto> logs = content.stream().map(this::mapToLogResponseDto).toList();
+
+        return new PagedLogResponse(
+                logs,
+                (Integer) result.get("page"),
+                (Integer) result.get("size"),
+                (Long) result.get("totalElements"),
+                (Integer) result.get("totalPages")
         );
     }
     public <T> void logChanges(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, LogDetailsEnum logType, String keyIdLabel) {
@@ -179,7 +226,7 @@ public class LoggingService {
              CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
 
             stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, Timestamp.from(Instant.now()));      // P_LOGDATETIME
+            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());      // P_LOGDATETIME
             stmt.setString(3, logDetails);                             // P_LOGDETAILS
             stmt.setString(4, docId);                                  // P_LOG_DOC_ID
             stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID

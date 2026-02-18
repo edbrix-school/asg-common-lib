@@ -12,7 +12,7 @@ import java.util.Base64;
 @Entity
 @Table(name = "GLOBAL_COMPANY_MASTER_DIV_DTL")
 @Data
-public class CompanyDivisionEntity {
+public class CompanyDivisionEntity extends BaseEntity {
 
     @EmbeddedId
     @Schema(hidden = true)
@@ -25,22 +25,6 @@ public class CompanyDivisionEntity {
 
     @Column(name = "REMARKS")
     private String remarks;
-
-    @Column(name = "CREATED_BY")
-    @AuditIgnore
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    @AuditIgnore
-    private LocalDateTime createdDate;
-
-    @Column(name = "LASTMODIFIED_BY")
-    @AuditIgnore
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    @AuditIgnore
-    private LocalDateTime lastModifiedDate;
 
     @Lob
     @Column(name = "COMPANY_DIV_LOGO")
