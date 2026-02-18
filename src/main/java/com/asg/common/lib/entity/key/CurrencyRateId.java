@@ -1,18 +1,18 @@
 package com.asg.common.lib.entity.key;
 
 import java.io.Serializable;
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Objects;
 
 public class CurrencyRateId implements Serializable {
 
     private Long groupPoid;
     private String currencyCode;
-    private Date rateDate;
+    private LocalDate rateDate;
 
     public CurrencyRateId() {}
 
-    public CurrencyRateId(Long groupPoid, String currencyCode, Date rateDate) {
+    public CurrencyRateId(Long groupPoid, String currencyCode, LocalDate rateDate) {
         this.groupPoid = groupPoid;
         this.currencyCode = currencyCode;
         this.rateDate = rateDate;

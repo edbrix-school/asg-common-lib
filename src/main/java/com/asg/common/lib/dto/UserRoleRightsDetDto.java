@@ -2,7 +2,7 @@ package com.asg.common.lib.dto;
 
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Setter
@@ -23,8 +23,8 @@ public class UserRoleRightsDetDto {
     
     // Audit fields
     private String createdBy;
-    private OffsetDateTime createdDate;
+    private LocalDateTime createdDate;
     private String lastModifiedBy;
-    private OffsetDateTime lastModifiedDate;
+    private LocalDateTime lastModifiedDate;
 
 }

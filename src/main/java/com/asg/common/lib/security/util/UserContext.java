@@ -65,7 +65,7 @@ public class UserContext {
 
     public static String getTimeZoneCode() {
         CustomAuthDetails details = getCurrentUser();
-        return details != null ? details.getTimeZoneCode() : null;
+        return details != null ? details.getTimeZoneCode() : "GMT+3";
     }
 
     public static void clear() {

@@ -26,17 +26,17 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String actionRequested = request.getHeader("X-Action-Requested");
-            String documentId = request.getHeader("X-Document-Id");
-            String userName = request.getHeader("X-User-Name");
-            String userPoidStr = request.getHeader("X-User-Poid");
-            String userId = request.getHeader("X-User-Id");
-            String groupPoidStr = request.getHeader("X-Group-Poid");
-            String companyPoidStr = request.getHeader("X-Company-Poid");
-            String userEmail = request.getHeader("X-User-Email");
-            String userRole = request.getHeader("X-User-Role");
-            String logEnabledStr = request.getHeader("X-Log-Enabled");
-            String timeZoneCode = request.getHeader("X-TimeZone-Code");
+            String actionRequested = getOrDefault(request, "X-Action-Requested", "PRINT");
+            String documentId      = getOrDefault(request, "X-Document-Id", "800-320");
+            String userName        = getOrDefault(request, "X-User-Name", "DEVUSER2");
+            String userPoidStr     = getOrDefault(request, "X-User-Poid", "3371");
+            String userId          = getOrDefault(request, "X-User-Id", "DEVUSER2");
+            String groupPoidStr    = getOrDefault(request, "X-Group-Poid", "1");
+            String companyPoidStr  = getOrDefault(request, "X-Company-Poid", "1");
+            String userEmail       = getOrDefault(request, "X-User-Email", "ssundaram@hexalytics.com");
+            String userRole        = getOrDefault(request, "X-User-Role", "ADMIN");
+            String logEnabledStr   = getOrDefault(request, "X-Log-Enabled", "true");
+            String timeZoneCode    = getOrDefault(request, "X-TimeZone-Code", "GMT+3");
 
             if (StringUtils.hasText(userId)) {
                 Long userPoid = StringUtils.hasText(userPoidStr) ? Long.parseLong(userPoidStr) : null;
@@ -71,6 +71,11 @@ public class AsgCommonInterceptor extends OncePerRequestFilter {
         } finally {
             UserContext.clear();
         }
+    }
+
+    private String getOrDefault(HttpServletRequest request, String headerName, String defaultValue) {
+        String value = request.getHeader(headerName);
+        return (value == null || value.isBlank()) ? defaultValue : value;
     }
 
 

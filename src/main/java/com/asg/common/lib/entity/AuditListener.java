@@ -13,17 +13,16 @@ public class AuditListener {
     @PrePersist
     public void setCreatedDate(BaseEntity entity) {
         LocalDateTime now = getCurrentDateTimeInUserTimeZone();
-        String currentUser = UserContext.getUserId();
         entity.setCreatedDate(now);
-        entity.setCreatedBy(currentUser);
+        entity.setCreatedBy(getCurrentUser());
         entity.setLastModifiedDate(now);
-        entity.setLastModifiedBy(currentUser);
+        entity.setLastModifiedBy(getCurrentUser());
     }
 
     @PreUpdate
     public void setLastModifiedDate(BaseEntity entity) {
         entity.setLastModifiedDate(getCurrentDateTimeInUserTimeZone());
-        entity.setLastModifiedBy(UserContext.getUserId());
+        entity.setLastModifiedBy(getCurrentUser());
     }
 
     private LocalDateTime getCurrentDateTimeInUserTimeZone() {
@@ -31,4 +30,9 @@ public class AuditListener {
         ZoneId zoneId = ZoneId.of(timeZoneCode);
         return ZonedDateTime.now(zoneId).toLocalDateTime();
     }
+
+    private static String getCurrentUser() {
+        return UserContext.getUserId() != null ? String.valueOf(UserContext.getUserId()) : "SYSTEM";
+    }
+
 }

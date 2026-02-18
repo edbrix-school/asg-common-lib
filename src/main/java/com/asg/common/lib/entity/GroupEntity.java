@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Table(name = "GLOBAL_GROUP_MASTER")
-public class GroupEntity {
+public class GroupEntity extends BaseEntity {
     @Id
     @Column(name = "GROUP_POID", nullable = false)
     private Long groupPoid;
@@ -48,18 +48,6 @@ public class GroupEntity {
 
     @Column(name = "ACTIVE", length = 1)
     private String active;
-
-    @Column(name = "CREATED_BY", length = 20)
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    private LocalDateTime createdDate;
-
-    @Column(name = "LASTMODIFIED_BY", length = 20)
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    private LocalDateTime lastModifiedDate;
 
     @Column(name = "DELETED", length = 1)
     private String deleted;

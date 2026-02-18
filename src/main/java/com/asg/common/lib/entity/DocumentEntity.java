@@ -6,12 +6,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "GLOBAL_DOC_MASTER")
-public class DocumentEntity {
+public class DocumentEntity extends BaseEntity {
     @Id
     @Column(name = "DOC_ID", length = 20, nullable = false)
     @AuditIgnore
@@ -42,7 +43,7 @@ public class DocumentEntity {
     private BigDecimal docRevision;
 
     @Column(name = "DOC_REVISION_DATE")
-    private java.sql.Date docRevisionDate;
+    private LocalDate docRevisionDate;
 
     @Lob
     @Basic(fetch = FetchType.LAZY)
@@ -59,22 +60,6 @@ public class DocumentEntity {
 
     @Column(name = "SEQNO")
     private Integer seqno;
-
-    @Column(name = "CREATED_BY", length = 20)
-    @AuditIgnore
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    @AuditIgnore
-    private java.sql.Timestamp createdDate;
-
-    @Column(name = "LASTMODIFIED_BY", length = 20)
-    @AuditIgnore
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    @AuditIgnore
-    private java.sql.Timestamp lastModifiedDate;
 
     @Column(name = "DOC_POID")
     @AuditIgnore
