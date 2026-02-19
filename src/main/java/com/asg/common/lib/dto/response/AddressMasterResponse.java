@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -65,7 +65,7 @@ public class AddressMasterResponse {
     private AddressTypeMapDTO addressTypeMap;
     
     private String createdBy;
-    private OffsetDateTime createdDate;
+    private LocalDateTime createdDate;
     private String lastModifiedBy;
-    private OffsetDateTime lastModifiedDate;
+    private LocalDateTime lastModifiedDate;
 }

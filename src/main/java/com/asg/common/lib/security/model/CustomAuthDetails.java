@@ -11,6 +11,7 @@ public class CustomAuthDetails {
     private String userEmail;
     private String userRole;
     private Boolean logEnabled = true;
+    private String timeZoneCode;
 
     public CustomAuthDetails() {
     }
@@ -94,6 +95,12 @@ public class CustomAuthDetails {
     public void setLogEnabled(Boolean logEnabled) {
         this.logEnabled = logEnabled;
     }
+    public String getTimeZoneCode() {
+        return timeZoneCode;
+    }
+    public void setTimeZoneCode(String timeZoneCode) {
+        this.timeZoneCode = timeZoneCode;
+    }
 
     public static Builder builder() {
         return new Builder();
@@ -110,6 +117,7 @@ public class CustomAuthDetails {
         private String userEmail;
         private String userRole;
         private Boolean logEnabled;
+        private String timeZoneCode;
 
         public Builder actionRequested(String actionRequested) {
             this.actionRequested = actionRequested;
@@ -161,6 +169,11 @@ public class CustomAuthDetails {
             return this;
         }
 
+        public Builder timeZoneCode(String timeZoneCode) {
+            this.timeZoneCode = timeZoneCode;
+            return this;
+        }
+
         public CustomAuthDetails build() {
             CustomAuthDetails details = new CustomAuthDetails();
             details.setActionRequested(this.actionRequested);
@@ -173,6 +186,7 @@ public class CustomAuthDetails {
             details.setUserEmail(this.userEmail);
             details.setUserRole(this.userRole);
             details.setLogEnabled(this.logEnabled);
+            details.setTimeZoneCode(this.timeZoneCode);
             return details;
         }
     }

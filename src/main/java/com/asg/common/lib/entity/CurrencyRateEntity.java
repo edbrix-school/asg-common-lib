@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -26,7 +26,7 @@ public class CurrencyRateEntity {
 
     @Id
     @Column(name = "RATE_DATE", nullable = false)
-    private Date rateDate;
+    private LocalDate rateDate;
 
     @Column(name = "BUY_RATE")
     private BigDecimal buyRate;

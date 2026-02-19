@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.Column;
@@ -20,7 +20,7 @@ import jakarta.persistence.Table;
 @AllArgsConstructor
 @Builder
 @Table(name = "GLOBAL_CURRENCY_MASTER")
-public class CurrencyEntity {
+public class CurrencyEntity extends BaseEntity {
     @Id
     @SequenceGenerator(
             name = "currency_seq",
@@ -63,22 +63,6 @@ public class CurrencyEntity {
 
     @Column(name = "CURRENCY_DECIMALS")
     private Integer decimals;
-
-    @Column(name = "CREATED_BY")
-    @AuditIgnore
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    @AuditIgnore
-    private OffsetDateTime createdDate;
-
-    @Column(name = "LASTMODIFIED_BY")
-    @AuditIgnore
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    @AuditIgnore
-    private OffsetDateTime lastModifiedDate;
 
     @Column(name = "DELETED")
     @AuditIgnore

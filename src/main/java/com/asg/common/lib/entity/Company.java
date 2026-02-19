@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -16,7 +18,7 @@ import java.util.List;
 @Entity
 @Table(name = "GLOBAL_COMPANY_MASTER")
 @Data
-public class Company {
+public class Company extends BaseEntity {
 
     @Column(name = "GROUP_POID")
     @AuditIgnore
@@ -77,51 +79,33 @@ public class Company {
 
     @NotNull(message = "Financial Period Start is required")
     @Column(name = "FINANCIAL_PERIOD_START")
-    private Date financialPeriodStart;
+    private LocalDate financialPeriodStart;
 
     @NotNull(message = "Financial Period End is required")
     @Column(name = "FINANCIAL_PERION_END")
-    private Date financialPeriodEnd;
+    private LocalDate financialPeriodEnd;
 
     @NotNull(message = "Report Period Start is required")
     @Column(name = "REPORT_PERIOD_START")
-    private Date reportPeriodStart;
+    private LocalDate reportPeriodStart;
 
     @NotNull(message = "Report Period End is required")
     @Column(name = "REPORT_PERIOD_END")
-    private Date reportPeriodEnd;
+    private LocalDate reportPeriodEnd;
 
     @NotNull(message = "Trans Period Start is required")
     @Column(name = "TRANS_PERIOD_START")
-    private Date transPeriodStart;
+    private LocalDate transPeriodStart;
 
     @NotNull(message = "Trans Period End is required")
     @Column(name = "TRANS_PERIOD_END")
-    private Date transPeriodEnd;
+    private LocalDate transPeriodEnd;
 
     @Column(name = "ACTIVE")
     private String active;
 
     @Column(name = "SEQNO")
     private Integer seqNo;
-
-    @Column(name = "CREATED_BY")
-    @AuditIgnore
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
-    @AuditIgnore
-    private Date createdDate;
-
-    @Column(name = "LASTMODIFIED_BY")
-    @AuditIgnore
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    @AuditIgnore
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date lastModifiedDate;
 
     @Column(name = "DELETED")
     @AuditIgnore
@@ -132,7 +116,7 @@ public class Company {
 //    private Byte[] logoHdrImage;
 
     @Column(name = "PROVISIONAL_CLOSED_DATE")
-    private Date provisionalClosedDate;
+    private LocalDate provisionalClosedDate;
 
     @Column(name = "BANK_DETAIL")
     @AuditIgnore
@@ -145,19 +129,19 @@ public class Company {
     private String tinNumber;
 
     @Column(name = "VAT_REGISTRATION_DATE")
-    private Date vatRegistrationDate;
+    private LocalDate vatRegistrationDate;
 
     @Column(name = "VAT_LAST_FILED_DATE")
-    private Date vatLastFiledDate;
+    private LocalDate vatLastFiledDate;
 
     @Column(name = "ACCOUNT_PERSON")
     private String accountPerson;
 
     @Column(name = "STOCK_PERIOD_START")
-    private Date stockPeriodStart;  //inv_period_start
+    private LocalDate stockPeriodStart;  //inv_period_start
 
     @Column(name = "STOCK_PERIOD_END")
-    private Date stockPeriodEnd;    //inv_period_end
+    private LocalDate stockPeriodEnd;    //inv_period_end
 
     @Column(name = "VAT_FILING_PERIOD")
     @AuditIgnore
@@ -171,31 +155,31 @@ public class Company {
 
     @Column(name = "VAT_LAST_FILED_CREATED_DATE")
     @AuditIgnore
-    private Date vatLastFiledCreatedDate;
+    private LocalDateTime vatLastFiledCreatedDate;
 
     @Column(name = "FINANCIAL_DATE_UPDATED_BY")
     private String financialDateUpdatedBy;
 
     @Column(name = "FINANCIAL_DATE_UPDATED_DATE")
-    private Date financialDateUpdatedDate;
+    private LocalDateTime financialDateUpdatedDate;
 
     @Column(name = "TRANS_DATE_UPDATED_BY")
     private String transDateUpdatedBy;
 
     @Column(name = "TRANS_DATE_UPDATED_DATE")
-    private Date transDateUpdatedDate;
+    private LocalDateTime transDateUpdatedDate;
 
     @Column(name = "REPORT_DATE_UPDATED_BY")
     private String reportDateUpdatedBy;
 
     @Column(name = "REPORT_DATE_UPDATED_DATE")
-    private Date reportDateUpdatedDate;
+    private LocalDateTime reportDateUpdatedDate;
 
     @Column(name = "INVENTORY_DATE_UPDATED_BY")
     private String inventoryDateUpdatedBy;
 
     @Column(name = "INVENTORY_DATE_UPDATED_DATE")
-    private Date inventoryDateUpdatedDate;
+    private LocalDateTime inventoryDateUpdatedDate;
 
     @Transient  //doesnt map to field in db
     @Schema(hidden = true)  //hides from swagger
