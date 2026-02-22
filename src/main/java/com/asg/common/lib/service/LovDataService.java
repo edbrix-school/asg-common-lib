@@ -28,8 +28,10 @@ public class LovDataService {
     private TimeZoneDataRepository timeZoneDataRepository;
 
     private static final List<String> SKIP_FILTER_LOV_NAMES = Arrays.asList(
-            "TERMS_TEMPLATE_MASTER"
+            "TERMS_TEMPLATE_MASTER",
+            "CHQ_RETURN_RECEIPT_NO"
     );
+
 
     // ================================
     // Generic LOV method
@@ -60,6 +62,25 @@ public class LovDataService {
             String sortBy, String sortDir, List<String> defaultCode, List<Long> defaultPoid,
             String filterField) {
 
+//        lovName = 'CHQ_RETURN_RECEIPT_NO'
+//        url decode the filter
+        String processedFilter = filter;
+
+        if ("CHQ_RETURN_RECEIPT_NO".equalsIgnoreCase(lovName)
+                && filter != null
+                && !filter.trim().isEmpty()) {
+            try {
+                processedFilter = java.net.URLDecoder.decode(
+                        filter,
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
+            } catch (Exception e) {
+                log.warn("Failed to URL decode filter", e);
+            }
+        }
+
+        final String finalFilter = processedFilter;
+
         return jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
                     CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
@@ -69,7 +90,7 @@ public class LovDataService {
                     cs.setString(4, lovName != null ? lovName : "");
                     // P_LOV_FILTER_FIELD
                     cs.setString(5, filterField != null ? filterField : "");
-                    cs.setString(6, filter != null ? filter : "");
+                    cs.setString(6, finalFilter != null ? finalFilter : "");
                     cs.registerOutParameter(7, OracleTypes.CURSOR);
                     return cs;
                 },

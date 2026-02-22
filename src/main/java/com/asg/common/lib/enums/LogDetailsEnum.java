@@ -17,11 +17,11 @@ public enum LogDetailsEnum {
     STATUS_CHANGED("Status Changed-"),
     ATTACHMENTS_UPLOADED("Attachments uploaded -"),
     ATTACHMENT_DELETED("Attachment deleted -"),
-    ATTACHMENTS_DELETED("All attachments deleted -"),
+    ATTACHMENTS_DELETED("All attachments deleted "),
     ATTACHMENT_UPDATED("Attachment updated -"),
     ATTACHMENT_ARCHIVED("Attachment archived -"),
-    ATTACHMENT_DOWNLOADED("Attachment downloaded -"),
-    ATTACHMENT_VIEWED("Attachment viewed -");
+    ATTACHMENT_DOWNLOADED("Attachment viewed/downloaded -"),
+    ATTACHMENT_VIEWED("Attachment viewed/downloaded -");
 
     private final String description;
 
