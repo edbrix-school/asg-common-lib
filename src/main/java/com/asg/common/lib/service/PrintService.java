@@ -1,6 +1,7 @@
 package com.asg.common.lib.service;
 
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.utility.DateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.*;
@@ -14,6 +15,7 @@ import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +35,7 @@ public class PrintService {
         p.put("DOC_ID", documentId);
         p.put("SUBREPORT_DIR", "");
         p.put("DATE_TIME", new java.util.Date());
+        p.put("REPORT_DATE", Timestamp.valueOf(DateUtil.getCurrentDateTimeInUserTimeZone()));
         p.put("LOGIN_COMP_POID", UserContext.getCompanyPoid());
         p.put("LOGIN_DIV_POID", getDivisionPoid(UserContext.getCompanyPoid()));
         p.put("LOGIN_GROUP_POID", UserContext.getGroupPoid());
