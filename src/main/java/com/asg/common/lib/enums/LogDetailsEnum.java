@@ -22,7 +22,7 @@ public enum LogDetailsEnum {
     ATTACHMENT_ARCHIVED("Attachment archived -"),
     ATTACHMENT_DOWNLOADED("Attachment viewed/downloaded -"),
     ATTACHMENT_VIEWED("Attachment viewed/downloaded -"),
-    DOCUMENT_PRINTED("Document Print/Preview -");
+    PREVIEWED_OR_PRINTED_OR_DOWNLOADED("Previewed/Printed/Downloaded -");
 
     private final String description;
 

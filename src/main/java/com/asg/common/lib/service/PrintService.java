@@ -78,7 +78,7 @@ public class PrintService {
             exporter.setConfiguration(configuration);
             exporter.exportReport();
             if (null != loggingService && params.containsKey("DOC_KEY_POID") && params.containsKey("DOC_ID")) {
-                loggingService.createLogSummaryEntry(LogDetailsEnum.DOCUMENT_PRINTED,
+                loggingService.createLogSummaryEntry(LogDetailsEnum.PREVIEWED_OR_PRINTED_OR_DOWNLOADED,
                         params.get("DOC_ID").toString(),
                         params.get("DOC_KEY_POID").toString());
             }
