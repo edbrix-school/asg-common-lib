@@ -21,7 +21,8 @@ public enum LogDetailsEnum {
     ATTACHMENT_UPDATED("Attachment updated -"),
     ATTACHMENT_ARCHIVED("Attachment archived -"),
     ATTACHMENT_DOWNLOADED("Attachment viewed/downloaded -"),
-    ATTACHMENT_VIEWED("Attachment viewed/downloaded -");
+    ATTACHMENT_VIEWED("Attachment viewed/downloaded -"),
+    DOCUMENT_PRINTED("Document Print/Preview -");
 
     private final String description;
 
