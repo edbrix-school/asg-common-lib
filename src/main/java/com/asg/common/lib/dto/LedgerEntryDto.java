@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class LedgerEntryDto {
@@ -17,5 +18,5 @@ public class LedgerEntryDto {
     private BigDecimal drAmt;
     private BigDecimal crAmt;
     private String postedBy;
-    private LocalDate postedDate;
+    private LocalDateTime postedDate;
 }
