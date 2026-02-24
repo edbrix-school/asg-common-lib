@@ -1,5 +1,6 @@
 package com.asg.common.lib.utility;
 
+import com.asg.common.lib.annotation.CurrencyFormat;
 import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.DiffObject;
 import com.asg.common.lib.security.util.UserContext;
@@ -7,6 +8,7 @@ import org.apache.commons.lang3.ObjectUtils;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
@@ -65,11 +67,13 @@ public final class DiffUtil {
                 Object normalizedNewValue =
                         normalizeToOldType(oldValue, newValue);
 
-                if (!areEqual(oldValue, normalizedNewValue)) {
+                boolean isEqual = areEqual(oldValue, normalizedNewValue);
+
+                if (!isEqual) {
                     diffs.add(new DiffObject(
                             field.getName(),
-                            formatForLog(oldValue),
-                            formatForLog(normalizedNewValue)
+                            formatForLog(oldValue, field),
+                            formatForLog(normalizedNewValue, field)
                     ));
                 }
 
@@ -153,8 +157,25 @@ public final class DiffUtil {
      * Ensures consistent and readable audit log values.
      */
     private static String formatForLog(Object value) {
+        return formatForLog(value, null);
+    }
+
+    /**
+     * Ensures consistent and readable audit log values with field context.
+     */
+    private static String formatForLog(Object value, Field field) {
         if (value == null) {
             return null;
+        }
+
+        // Check if field has @CurrencyFormat annotation
+        if (field != null && field.isAnnotationPresent(CurrencyFormat.class)) {
+            int decimals = CurrencyHelper.getCurrencyDecimals();
+            if (value instanceof BigDecimal bd) {
+                return bd.setScale(decimals, RoundingMode.DOWN).toPlainString();
+            } else if (value instanceof Double d) {
+                return BigDecimal.valueOf(d).setScale(decimals, RoundingMode.DOWN).toPlainString();
+            }
         }
 
         return switch (value) {
