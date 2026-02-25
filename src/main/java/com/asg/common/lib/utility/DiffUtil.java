@@ -2,10 +2,9 @@ package com.asg.common.lib.utility;
 
 import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.DiffObject;
-import com.asg.common.lib.repository.CurrencyDecimalRepository;
-import com.asg.common.lib.repository.GenericRepository;
 import com.asg.common.lib.security.util.UserContext;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -26,14 +25,14 @@ import java.util.*;
  */
 public final class DiffUtil {
 
-    private static GenericRepository genericRepository;
+    private static JdbcTemplate jdbcTemplate;
     private static final ThreadLocal<Map<Long, Integer>> cachedDecimals = new ThreadLocal<>();
 
     private DiffUtil() {
     }
 
-    public static void setRepository(GenericRepository repository) {
-        genericRepository = repository;
+    public static void setJdbcTemplate(JdbcTemplate template) {
+        jdbcTemplate = template;
     }
 
     public static void clearCache() {
@@ -181,10 +180,19 @@ public final class DiffUtil {
         
         Integer decimals = cache.get(companyPoid);
         if (decimals == null) {
-            if (genericRepository == null) {
+            if (jdbcTemplate == null) {
                 return value.stripTrailingZeros();
             }
-            decimals = genericRepository.getCurrencyDecimalsByCompanyPoid(companyPoid);
+            try {
+                decimals = jdbcTemplate.queryForObject(
+                    "SELECT c.CURRENCY_DECIMALS FROM GLOBAL_CURRENCY_MASTER c " +
+                    "WHERE c.CURRENCY_POID = (SELECT cm.CURRENCY_POID FROM GLOBAL_COMPANY_MASTER cm WHERE cm.COMPANY_POID = ?)",
+                    Integer.class,
+                    companyPoid
+                );
+            } catch (Exception e) {
+                return value.stripTrailingZeros();
+            }
             if (decimals == null) {
                 return value.stripTrailingZeros();
             }
