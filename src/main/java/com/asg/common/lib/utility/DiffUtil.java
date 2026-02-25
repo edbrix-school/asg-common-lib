@@ -198,7 +198,7 @@ public final class DiffUtil {
             }
             cache.put(companyPoid, decimals);
         }
-        return value.setScale(decimals, RoundingMode.HALF_UP);
+        return value.setScale(decimals, RoundingMode.DOWN);
     }
 
     /**
@@ -217,6 +217,7 @@ public final class DiffUtil {
             case LocalDateTime ldt -> ldt.toString();
             case LocalDate ld -> ld.toString();
             case BigDecimal bd -> scaleBigDecimal(bd).toPlainString();
+            case Double d -> scaleBigDecimal(BigDecimal.valueOf(d)).toPlainString();
             default -> value.toString();
         };
     }
