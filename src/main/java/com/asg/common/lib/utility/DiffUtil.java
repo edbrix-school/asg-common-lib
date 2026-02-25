@@ -7,6 +7,7 @@ import org.apache.commons.lang3.ObjectUtils;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
@@ -165,6 +166,9 @@ public final class DiffUtil {
             case LocalDateTime ldt -> ldt.toString();
             case LocalDate ld -> ld.toString();
             case BigDecimal bd -> bd.stripTrailingZeros().toPlainString();
+            case Double d -> BigDecimal.valueOf(d)
+                    .setScale(3, RoundingMode.DOWN)
+                    .toPlainString();
             default -> value.toString();
         };
     }
