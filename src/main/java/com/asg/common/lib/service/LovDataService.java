@@ -495,7 +495,7 @@ public class LovDataService {
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
 
             if (lovGetListDtos != null) {
-                dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElseThrow(() -> new ResourceNotFoundException("Master Data", "CODE", code));
+                dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElse(new LovGetListDto(null, code, null, null, null, null, null));
             }
         }
         return dto;
