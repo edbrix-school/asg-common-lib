@@ -6,7 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
+
 
 @Data
 @NoArgsConstructor
@@ -23,7 +24,7 @@ public class BillwiseBreakupRequestDto {
     private Long billDetRowId;
     private String billRefType;
     private String billRef;
-    private Date billDueDate;
+    private LocalDate billDueDate;
     private BigDecimal drAmt;
     private BigDecimal crAmt;
     private String billRemarks;
