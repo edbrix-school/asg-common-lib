@@ -471,7 +471,20 @@ public class LovDataService {
                 dto = lovGetListDtos.stream()
                         .filter(x -> x.getPoid().equals(poid))
                         .findAny()
-                        .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+                        .orElse(null);
+            }
+            
+            if (dto == null) {
+                @SuppressWarnings("unchecked")
+                List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+                if (defaultValues != null) {
+                    dto = defaultValues.stream()
+                            .filter(x -> x.getPoid().equals(poid))
+                            .findAny()
+                            .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+                } else {
+                    dto = new LovGetListDto(poid, null, null, null, null, null, null);
+                }
             }
         }
         return dto;
@@ -495,7 +508,23 @@ public class LovDataService {
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
 
             if (lovGetListDtos != null) {
-                dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElse(new LovGetListDto(null, code, null, null, null, null, null));
+                dto = lovGetListDtos.stream()
+                        .filter(x -> x.getCode().equalsIgnoreCase(code))
+                        .findAny()
+                        .orElse(null);
+            }
+            
+            if (dto == null) {
+                @SuppressWarnings("unchecked")
+                List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+                if (defaultValues != null) {
+                    dto = defaultValues.stream()
+                            .filter(x -> x.getCode().equalsIgnoreCase(code))
+                            .findAny()
+                            .orElse(new LovGetListDto(null, code, null, null, null, null, null));
+                } else {
+                    dto = new LovGetListDto(null, code, null, null, null, null, null);
+                }
             }
         }
         return dto;
@@ -517,7 +546,20 @@ public class LovDataService {
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
 
             if (lovGetListDtos != null) {
-                return lovGetListDtos.stream()
+                LovGetListDto dto = lovGetListDtos.stream()
+                        .filter(x -> x.getCode().equals(code))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (dto != null) {
+                    return dto;
+                }
+            }
+            
+            @SuppressWarnings("unchecked")
+            List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+            if (defaultValues != null) {
+                return defaultValues.stream()
                         .filter(x -> x.getCode().equals(code))
                         .findFirst()
                         .orElse(new LovGetListDto());
