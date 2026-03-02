@@ -495,7 +495,7 @@ public class LovDataService {
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
 
             if (lovGetListDtos != null) {
-                dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElseThrow(() -> new ResourceNotFoundException("Master Data", "CODE", code));
+                dto = lovGetListDtos.stream().filter(x -> x.getCode().equalsIgnoreCase(code)).findAny().orElse(new LovGetListDto(null, code, null, null, null, null, null));
             }
         }
         return dto;
@@ -531,7 +531,7 @@ public class LovDataService {
         if (poid == null || lovName == null || lovName.isEmpty())
             return new LovGetListDto();
 
-        LovGetListDto dto = new LovGetListDto();
+        LovGetListDto dto = null;
         Map<String, Object> listValue = this.getLovList(poid.toString(), UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
                 lovName,
                 0, 0,
@@ -540,13 +540,25 @@ public class LovDataService {
         if (listValue != null) {
             @SuppressWarnings("unchecked")
             List<LovGetListDto> lovGetListDtos = (List<LovGetListDto>) listValue.get("data");
-            if (lovGetListDtos != null) {
+            if (lovGetListDtos != null && !lovGetListDtos.isEmpty()) {
                 dto = lovGetListDtos.stream()
                         .filter(x -> x.getPoid().equals(poid))
                         .findAny()
-                        .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+                        .orElse(null);
+            }
+            
+            // If not found in data, check defaultValues
+            if (dto == null) {
+                @SuppressWarnings("unchecked")
+                List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+                if (defaultValues != null && !defaultValues.isEmpty()) {
+                    dto = defaultValues.stream()
+                            .filter(x -> x.getPoid().equals(poid))
+                            .findAny()
+                            .orElse(null);
+                }
             }
         }
-        return dto;
+        return dto != null ? dto : new LovGetListDto(poid, null, null, null, null, null, null);
     }
 }

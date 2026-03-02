@@ -14,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -73,8 +75,9 @@ public class DocumentSearchService {
 
         List<Map<String, Object>> rows = tableMetaRepository.executeDynamicQuery(finalSql, params, columnNames);
 
-        // Enrich rows with displayable fields not returned by SQL with null values---
+        // Normalize date/timestamp values to ISO-8601 (UTC) so timezone is not shifted by JVM/serialization
         for (Map<String, Object> row : rows) {
+            normalizeRowDateValues(row);
             for (String field : displayCols.keySet()) {
                 row.putIfAbsent(field, null);
             }
@@ -208,6 +211,29 @@ public class DocumentSearchService {
 
     // ----------------- helpers -----------------
 
+    /**
+     * Replaces date/timestamp values in the row with ISO-8601 strings in UTC
+     * so that JVM default timezone or JSON serialization does not shift the instant.
+     */
+    private void normalizeRowDateValues(Map<String, Object> row) {
+        if (row == null) return;
+        for (Map.Entry<String, Object> entry : new ArrayList<>(row.entrySet())) {
+            Object value = entry.getValue();
+            if (value == null) continue;
+            Instant instant = null;
+            if (value instanceof Timestamp ts) {
+                instant = ts.toInstant();
+            } else if (value instanceof java.sql.Date sqlDate) {
+                instant = new java.util.Date(sqlDate.getTime()).toInstant();
+            } else if (value instanceof java.util.Date date) {
+                instant = date.toInstant();
+            }
+            if (instant != null) {
+                row.put(entry.getKey(), instant.toString());
+            }
+        }
+    }
+
     private DocumentEntity getDocument(String docId) {
         return documentRepository.findByDocId(docId);
     }
@@ -306,9 +332,10 @@ public class DocumentSearchService {
     //Handle non globalsearch conditions
     private String buildFieldCondition(String field, String op, String value, boolean isDateField, List<Object> params) {
         if (!"=".equals(op)) {
-            return isDateField
-                    ? field + " " + op + " DATE '" + value.trim() + "'"
-                    : field + " " + op + " ?";
+            if (isDateField) {
+                return "TO_DATE(" + field + ") " + op + " DATE '" + value.trim() + "'";
+            }
+            return field + " " + op + " ?";
         }
         if (value.contains("|")) {
             String[] vals = value.split("\\|");

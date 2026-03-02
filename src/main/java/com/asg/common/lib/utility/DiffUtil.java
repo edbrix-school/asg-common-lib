@@ -4,9 +4,11 @@ import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.dto.DiffObject;
 import com.asg.common.lib.security.util.UserContext;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
@@ -23,7 +25,18 @@ import java.util.*;
  */
 public final class DiffUtil {
 
+    private static JdbcTemplate jdbcTemplate;
+    private static final ThreadLocal<Map<Long, Integer>> cachedDecimals = new ThreadLocal<>();
+
     private DiffUtil() {
+    }
+
+    public static void setJdbcTemplate(JdbcTemplate template) {
+        jdbcTemplate = template;
+    }
+
+    public static void clearCache() {
+        cachedDecimals.remove();
     }
 
     private static ZoneId getUserZoneId() {
@@ -36,48 +49,52 @@ public final class DiffUtil {
             T newEntity,
             Class<T> entityClass
     ) {
-        List<DiffObject> diffs = new ArrayList<>();
+        try {
+            List<DiffObject> diffs = new ArrayList<>();
 
-        if (newEntity == null) {
-            return diffs;
-        }
-
-        for (Field field : entityClass.getDeclaredFields()) {
-            field.setAccessible(true);
-
-            String fieldName = field.getName();
-
-            if (fieldName.equals("createdBy") || fieldName.equals("createdDate") || fieldName.equals("createdAt") ||
-                    fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
-                    fieldName.equals("updatedBy") || fieldName.equals("updatedAt") ||
-                    fieldName.equals("updatedDate")) {
-                continue;
+            if (newEntity == null) {
+                return diffs;
             }
 
-            if (field.isAnnotationPresent(AuditIgnore.class)) {
-                continue;
-            }
+            for (Field field : entityClass.getDeclaredFields()) {
+                field.setAccessible(true);
 
-            try {
-                Object oldValue = oldEntity != null ? field.get(oldEntity) : null;
-                Object newValue = field.get(newEntity);
+                String fieldName = field.getName();
 
-                Object normalizedNewValue =
-                        normalizeToOldType(oldValue, newValue);
-
-                if (!areEqual(oldValue, normalizedNewValue)) {
-                    diffs.add(new DiffObject(
-                            field.getName(),
-                            formatForLog(oldValue),
-                            formatForLog(normalizedNewValue)
-                    ));
+                if (fieldName.equals("createdBy") || fieldName.equals("createdDate") || fieldName.equals("createdAt") ||
+                        fieldName.equals("lastModifiedBy") || fieldName.equals("lastModifiedDate") ||
+                        fieldName.equals("updatedBy") || fieldName.equals("updatedAt") ||
+                        fieldName.equals("updatedDate")) {
+                    continue;
                 }
 
-            } catch (IllegalAccessException ignored) {
-                // intentionally ignored
+                if (field.isAnnotationPresent(AuditIgnore.class)) {
+                    continue;
+                }
+
+                try {
+                    Object oldValue = oldEntity != null ? field.get(oldEntity) : null;
+                    Object newValue = field.get(newEntity);
+
+                    Object normalizedNewValue =
+                            normalizeToOldType(oldValue, newValue);
+
+                    if (!areEqual(oldValue, normalizedNewValue)) {
+                        diffs.add(new DiffObject(
+                                field.getName(),
+                                formatForLog(oldValue),
+                                formatForLog(normalizedNewValue)
+                        ));
+                    }
+
+                } catch (IllegalAccessException ignored) {
+                    // intentionally ignored
+                }
             }
+            return diffs;
+        } finally {
+            clearCache();
         }
-        return diffs;
     }
 
     /**
@@ -120,7 +137,7 @@ public final class DiffUtil {
 
             case BigDecimal bdOld -> {
                 if (newValue instanceof BigDecimal bdNew) {
-                    yield bdNew.stripTrailingZeros();
+                    yield scaleBigDecimal(bdNew);
                 }
                 yield newValue;
             }
@@ -149,6 +166,41 @@ public final class DiffUtil {
         };
     }
 
+    private static BigDecimal scaleBigDecimal(BigDecimal value) {
+        Long companyPoid = UserContext.getCompanyPoid();
+        if (companyPoid == null) {
+            return value.stripTrailingZeros();
+        }
+        
+        Map<Long, Integer> cache = cachedDecimals.get();
+        if (cache == null) {
+            cache = new HashMap<>();
+            cachedDecimals.set(cache);
+        }
+        
+        Integer decimals = cache.get(companyPoid);
+        if (decimals == null) {
+            if (jdbcTemplate == null) {
+                return value.stripTrailingZeros();
+            }
+            try {
+                decimals = jdbcTemplate.queryForObject(
+                    "SELECT c.CURRENCY_DECIMALS FROM GLOBAL_CURRENCY_MASTER c " +
+                    "WHERE c.CURRENCY_POID = (SELECT cm.CURRENCY_POID FROM GLOBAL_COMPANY_MASTER cm WHERE cm.COMPANY_POID = ?)",
+                    Integer.class,
+                    companyPoid
+                );
+            } catch (Exception e) {
+                return value.stripTrailingZeros();
+            }
+            if (decimals == null) {
+                return value.stripTrailingZeros();
+            }
+            cache.put(companyPoid, decimals);
+        }
+        return value.setScale(decimals, RoundingMode.DOWN);
+    }
+
     /**
      * Ensures consistent and readable audit log values.
      */
@@ -164,7 +216,8 @@ public final class DiffUtil {
             case Instant i -> i.toString();
             case LocalDateTime ldt -> ldt.toString();
             case LocalDate ld -> ld.toString();
-            case BigDecimal bd -> bd.stripTrailingZeros().toPlainString();
+            case BigDecimal bd -> scaleBigDecimal(bd).toPlainString();
+            case Double d -> scaleBigDecimal(BigDecimal.valueOf(d)).toPlainString();
             default -> value.toString();
         };
     }

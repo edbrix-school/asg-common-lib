@@ -1,5 +1,6 @@
 package com.asg.common.lib.service;
 
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.utility.DateUtil;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class PrintService {
     private static final Map<String, JasperReport> CACHE = new ConcurrentHashMap<>();
     private static final String BASE_JASPER_PATH = "/jasper/";
     private final DataSource dataSource;
+    private final LoggingService loggingService;
 
     public Map<String, Object> buildBaseParams(Long transactionPoid, String documentId) throws JRException {
         Map<String, Object> p = new HashMap<>();
@@ -75,6 +77,11 @@ public class PrintService {
             }
             exporter.setConfiguration(configuration);
             exporter.exportReport();
+            if (null != loggingService && params.containsKey("DOC_KEY_POID") && params.containsKey("DOC_ID")) {
+                loggingService.createLogSummaryEntry(LogDetailsEnum.PREVIEWED_OR_PRINTED_OR_DOWNLOADED,
+                        params.get("DOC_ID").toString(),
+                        params.get("DOC_KEY_POID").toString());
+            }
             return outputStream.toByteArray();
         }
     }
