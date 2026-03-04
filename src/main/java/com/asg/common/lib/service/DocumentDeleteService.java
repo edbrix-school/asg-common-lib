@@ -2,12 +2,12 @@ package com.asg.common.lib.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.entity.DocumentEntity;
-import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.DocumentCommonRepository;
 import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -26,6 +26,9 @@ public class DocumentDeleteService {
 
     @Autowired
     private DocumentCommonRepository documentCommonRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
                                  DeleteReasonDto deleteReason, LocalDate transactionDate) {
@@ -88,17 +91,49 @@ public class DocumentDeleteService {
                 );
                 return result;
             } else {
+                String docRef = fetchDocRef(tableName, poidColumnName, docKeyPoid);
                 loggingService.createLogSummaryEntry(
                         docId,
                         String.valueOf(docKeyPoid),
-                        String.format("Error on delete - %s - %s", docType, result)
+                        String.format("Error on delete - %s - %s", docRef, result)
                 );
-                throw new ValidationException("Error while deleting: " + result);
+                throw new ValidationException("Some error occured while deleting: " + result);
             }
 
         } catch (SQLException e) {
             log.error("Error deleting document", e);
             throw new ValidationException("Error deleting document: " + e.getMessage());
+        }
+    }
+
+
+
+    public String fetchDocRef(String tableName, String poidColumnName, Long docKeyPoid) {
+
+        try {
+
+            if (tableName == null || tableName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Invalid table name");
+            }
+            if (poidColumnName == null || poidColumnName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Invalid column name");
+            }
+            if (docKeyPoid == null) {
+                throw new IllegalArgumentException("Invalid document key");
+            }
+
+            String sql = "SELECT DOC_REF FROM " + tableName +
+                    " WHERE " + poidColumnName + " = ?";
+
+            return jdbcTemplate.query(
+                    sql,
+                    ps -> ps.setLong(1, docKeyPoid),
+                    rs -> rs.next() ? rs.getString("DOC_REF") : null
+            );
+
+        } catch (Exception ex) {
+            log.warn("Unable to fetch DOC_REF", ex);
+            return null;
         }
     }
 }
