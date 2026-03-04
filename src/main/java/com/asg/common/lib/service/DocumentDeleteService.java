@@ -6,6 +6,7 @@ import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.repository.DocumentCommonRepository;
 import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -112,10 +113,10 @@ public class DocumentDeleteService {
 
         try {
 
-            if (tableName == null || tableName.trim().isEmpty()) {
+            if (StringUtils.isBlank(tableName)) {
                 throw new IllegalArgumentException("Invalid table name");
             }
-            if (poidColumnName == null || poidColumnName.trim().isEmpty()) {
+            if (StringUtils.isBlank(poidColumnName)) {
                 throw new IllegalArgumentException("Invalid column name");
             }
             if (docKeyPoid == null) {
