@@ -31,6 +31,12 @@ public class DocumentDeleteService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private DocumentSearchService documentSearchService;
+
+    private Date transactionPeriodStart;
+    private Date transactionPeriodEnd;
+
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
                                  DeleteReasonDto deleteReason, LocalDate transactionDate) {
         
@@ -57,6 +63,26 @@ public class DocumentDeleteService {
         }
 
         String docType = document.getDocType();
+        DocumentSearchService.DocumentInfo info = null;
+        
+        if ("Transactions".equals(docType)) {
+            info = documentSearchService.loadDocumentInfo(docId);
+        }
+        
+        boolean isGLTransaction = info != null && info.isGlDocument() && "Transactions".equals(docType);
+
+        if (isGLTransaction) {
+            transactionPeriodStart = info.getTransPeriodStart();
+            transactionPeriodEnd = info.getTransPeriodEnd();
+        }
+
+        boolean hasEditPermission = grantEditPermissionGetStatus(docKeyPoid, docId);
+        
+        if (isGLTransaction && !isThisDateWithinValidTransactionPeriod(transactionDate != null ? Date.valueOf(transactionDate) : null)) {
+            if (!hasEditPermission) {
+                throw new ValidationException("This Document is not within the transaction period");
+            }
+        }
 
         String sql = "{CALL PROC_GLOB_DOC_DELETE(?,?,?,?,?,?,?,?,?,?,?)}";
 
@@ -108,6 +134,47 @@ public class DocumentDeleteService {
     }
 
 
+
+    public boolean isThisDateWithinValidTransactionPeriod(Date dateField) {
+        if (dateField == null) {
+            return false;
+        }
+
+        if (transactionPeriodStart == null || transactionPeriodEnd == null) {
+            throw new ValidationException("Transaction period is invalid for this company");
+        }
+
+        return !dateField.before(transactionPeriodStart) && !dateField.after(transactionPeriodEnd);
+    }
+
+    public Boolean grantEditPermissionGetStatus(Long documentKeyPoid, String docId) {
+        if (documentKeyPoid == null || docId == null) {
+            return false;
+        }
+
+        String sql = "{CALL PROC_GLOBAL_DOC_EDIT_RIGHT_GET(?,?,?,?,?)}";
+
+        try (Connection conn = dataSource.getConnection();
+             CallableStatement stmt = conn.prepareCall(sql)) {
+
+            stmt.setLong(1, UserContext.getGroupPoid());
+            stmt.setLong(2, UserContext.getUserPoid());
+            stmt.setString(3, docId);
+            stmt.setLong(4, documentKeyPoid);
+            stmt.registerOutParameter(5, Types.VARCHAR);
+
+            stmt.execute();
+
+            String status = stmt.getString(5);
+            log.debug("==> GrantEditPermissionGetStatus = {}", status);
+
+            return status != null && status.contains("SUCCESS");
+
+        } catch (SQLException e) {
+            log.error("Error checking edit permission: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 
     public String fetchDocRef(String tableName, String poidColumnName, Long docKeyPoid) {
 
