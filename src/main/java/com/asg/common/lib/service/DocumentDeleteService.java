@@ -36,6 +36,10 @@ public class DocumentDeleteService {
 
     private Date transactionPeriodStart;
     private Date transactionPeriodEnd;
+    private Date financialPeriodStart;
+    private Date financialPeriodEnd;
+    private Date stockPeriodStart;
+    private Date stockPeriodEnd;
 
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
                                  DeleteReasonDto deleteReason, LocalDate transactionDate) {
@@ -65,22 +69,41 @@ public class DocumentDeleteService {
         String docType = document.getDocType();
         DocumentSearchService.DocumentInfo info = null;
         
-        if ("Transactions".equals(docType)) {
+        if ("Transactions".equalsIgnoreCase(docType)) {
             info = documentSearchService.loadDocumentInfo(docId);
         }
         
         boolean isGLTransaction = info != null && info.isGlDocument() && "Transactions".equals(docType);
+        boolean isStockDocument = info != null && info.isInventoryDocument() && "Transactions".equals(docType);
 
         if (isGLTransaction) {
             transactionPeriodStart = info.getTransPeriodStart();
             transactionPeriodEnd = info.getTransPeriodEnd();
+            loadFinancialPeriodFromCompanyMaster(companyPoid);
+        }
+        
+        if (isStockDocument) {
+            stockPeriodStart = info.getStockPeriodStart();
+            stockPeriodEnd = info.getStockPeriodEnd();
         }
 
         boolean hasEditPermission = grantEditPermissionGetStatus(docKeyPoid, docId);
         
-        if (isGLTransaction && !isThisDateWithinValidTransactionPeriod(transactionDate != null ? Date.valueOf(transactionDate) : null)) {
+        Date docDate = transactionDate != null ? Date.valueOf(transactionDate) : null;
+        
+        if (isGLTransaction && !isThisDateWithinValidTransactionPeriod(docDate)) {
             if (!hasEditPermission) {
                 throw new ValidationException("This Document is not within the transaction period");
+            }
+        }
+        
+        if (isGLTransaction && !isThisDateWithinValidFinancialPeriod(docDate)) {
+            throw new ValidationException("This Document is not within the financial period");
+        }
+        
+        if (isStockDocument && !isThisDateWithinValidStockPeriod(docDate)) {
+            if (!hasEditPermission) {
+                throw new ValidationException("This Document is not within the stock period");
             }
         }
 
@@ -97,7 +120,6 @@ public class DocumentDeleteService {
             stmt.setLong(6, docKeyPoid);
             stmt.setString(7, tableName);
             stmt.setString(8, "MARK_AS_DELETE");
-            Date docDate = null;
             if (transactionDate != null) {
                 docDate = Date.valueOf(transactionDate);
             }
@@ -145,6 +167,46 @@ public class DocumentDeleteService {
         }
 
         return !dateField.before(transactionPeriodStart) && !dateField.after(transactionPeriodEnd);
+    }
+
+    public boolean isThisDateWithinValidFinancialPeriod(Date dateField) {
+        if (dateField == null) {
+            return false;
+        }
+
+        if (financialPeriodStart == null || financialPeriodEnd == null) {
+            throw new ValidationException("Financial period is invalid for this company (some null values)");
+        }
+
+        if (financialPeriodStart.after(financialPeriodEnd)) {
+            throw new ValidationException("Financial period is invalid for this company (start date is after end date)");
+        }
+
+        return !dateField.before(financialPeriodStart) && !dateField.after(financialPeriodEnd);
+    }
+
+    public boolean isThisDateWithinValidStockPeriod(Date dateField) {
+        if (dateField == null) {
+            return false;
+        }
+
+        if (stockPeriodStart == null || stockPeriodEnd == null) {
+            throw new ValidationException("Stock period is invalid for this company (some null values)");
+        }
+
+        return !dateField.before(stockPeriodStart) && !dateField.after(stockPeriodEnd);
+    }
+
+    private void loadFinancialPeriodFromCompanyMaster(Long companyPoid) {
+        String sql = "SELECT FINANCIAL_PERIOD_START, FINANCIAL_PERION_END FROM GLOBAL_COMPANY_MASTER WHERE COMPANY_POID = ?";
+        
+        jdbcTemplate.query(sql, ps -> ps.setLong(1, companyPoid), rs -> {
+            if (rs.next()) {
+                financialPeriodStart = rs.getDate("FINANCIAL_PERIOD_START");
+                financialPeriodEnd = rs.getDate("FINANCIAL_PERION_END");
+            }
+            return null;
+        });
     }
 
     public Boolean grantEditPermissionGetStatus(Long documentKeyPoid, String docId) {
