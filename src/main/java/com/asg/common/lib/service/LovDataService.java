@@ -142,7 +142,7 @@ public class LovDataService {
                                     .collect(Collectors.toList());
                         } else if (defaultCode != null && !defaultCode.isEmpty()) {
                             defaultValues = result.stream()
-                                    .filter(dto -> defaultCode.contains(dto.getCode()))
+                                    .filter(dto -> dto.getCode() != null && defaultCode.stream().anyMatch(code -> code.equalsIgnoreCase(dto.getCode())))
                                     .collect(Collectors.toList());
                         }
 
