@@ -15,16 +15,14 @@ public class ApiResponse {
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
                 "message", message,
-                "result", data != null ? Map.of("data", data) : "",
-                "errors", UserContext.getCurrentUser() != null ? UserContext.getCurrentUser().getGlPostingError() : null
+                "result", data != null ? Map.of("data", data) : ""
         ));
     }
     public static ResponseEntity<?> success(String message) {
         return ResponseEntity.ok(Map.of(
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
-                "message", message,
-                "errors", UserContext.getCurrentUser() != null ? UserContext.getCurrentUser().getGlPostingError() : null
+                "message", message
         ));
     }
 
