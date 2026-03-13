@@ -154,10 +154,22 @@ public class DocumentSearchService {
 
         // Apply dynamic sorting from Pageable
         if (pageable.getSort().isSorted()) {
-            String orderBy = pageable.getSort().stream()
+            List<String> orderByClauses = pageable.getSort().stream()
                     .filter(order -> columnNames.contains(order.getProperty().toUpperCase()))
                     .map(order -> order.getProperty() + " " + order.getDirection().name())
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            boolean hasTransactionDateSort = pageable.getSort().stream()
+                    .anyMatch(order -> "TRANSACTION_DATE".equalsIgnoreCase(order.getProperty()));
+
+            boolean hasDocRefSort = pageable.getSort().stream()
+                    .anyMatch(order -> "DOC_REF".equalsIgnoreCase(order.getProperty()));
+
+            if (hasTransactionDateSort && !hasDocRefSort && columnNames.contains("DOC_REF")) {
+                orderByClauses.add("DOC_REF DESC");
+            }
+
+            String orderBy = String.join(", ", orderByClauses);
             if (!orderBy.isEmpty()) {
                 sqlBuilder.append(" ORDER BY ").append(orderBy);
             }
