@@ -258,14 +258,19 @@ public class DocumentSearchService {
         for (Map.Entry<String, Object> entry : new ArrayList<>(row.entrySet())) {
             Object value = entry.getValue();
             if (value == null) continue;
+            
             Instant instant = null;
             if (value instanceof Timestamp ts) {
-                instant = ts.toInstant();
+                // Map the literal database time strictly to UTC to avoid JVM offset shifting
+                instant = ts.toLocalDateTime().toInstant(java.time.ZoneOffset.UTC);
             } else if (value instanceof java.sql.Date sqlDate) {
-                instant = new java.util.Date(sqlDate.getTime()).toInstant();
+                // Map the literal date strictly to UTC midnight
+                instant = sqlDate.toLocalDate().atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
             } else if (value instanceof java.util.Date date) {
-                instant = date.toInstant();
+                instant = java.time.LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault())
+                        .toInstant(java.time.ZoneOffset.UTC);
             }
+
             if (instant != null) {
                 row.put(entry.getKey(), instant.toString());
             }
