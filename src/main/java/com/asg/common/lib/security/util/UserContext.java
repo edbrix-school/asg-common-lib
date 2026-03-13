@@ -53,6 +53,18 @@ public class UserContext {
         return details != null ? details.getDocumentId() : null;
     }
 
+    public static String getGlPostingError() {
+        CustomAuthDetails details = getCurrentUser();
+        return details != null ? details.getGlPostingError() : null;
+    }
+
+    public static void setGlPostingError(String glPostingError) {
+        CustomAuthDetails details = getCurrentUser();
+        if (details != null) {
+            details.setGlPostingError(glPostingError);
+        }
+    }
+
     public static String getUserRole() {
         CustomAuthDetails details = getCurrentUser();
         return details != null ? details.getUserRole() : null;
