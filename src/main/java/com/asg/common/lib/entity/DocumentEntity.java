@@ -30,6 +30,9 @@ public class DocumentEntity extends BaseEntity {
     @Column(name = "DOC_NAME2", length = 20)
     private String docName2;
 
+    @Column(name = "ROUTE_NAME", length = 100)
+    private String routeName;
+
     @Column(name = "MODULE_ID", length = 20)
     private String moduleId;
 
