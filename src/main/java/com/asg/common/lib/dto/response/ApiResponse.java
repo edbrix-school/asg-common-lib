@@ -1,6 +1,7 @@
 package com.asg.common.lib.dto.response;
 
 
+import com.asg.common.lib.security.util.UserContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -14,14 +15,16 @@ public class ApiResponse {
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
                 "message", message,
-                "result", data != null ? Map.of("data", data) : ""
+                "result", data != null ? Map.of("data", data) : "",
+                "errors", UserContext.getCurrentUser() != null ? UserContext.getCurrentUser().getGlPostingError() : null
         ));
     }
     public static ResponseEntity<?> success(String message) {
         return ResponseEntity.ok(Map.of(
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
-                "message", message
+                "message", message,
+                "errors", UserContext.getCurrentUser() != null ? UserContext.getCurrentUser().getGlPostingError() : null
         ));
     }
 
