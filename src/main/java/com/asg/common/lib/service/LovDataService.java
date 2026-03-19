@@ -30,7 +30,8 @@ public class LovDataService {
     private static final List<String> SKIP_FILTER_LOV_NAMES = Arrays.asList(
             "TERMS_TEMPLATE_MASTER",
             "CHQ_RETURN_RECEIPT_NO",
-            "BENEFICIARY_NAME"
+            "BENEFICIARY_NAME",
+            "CUSTOMER_SUPPLIER_MASTER"
     );
 
 
