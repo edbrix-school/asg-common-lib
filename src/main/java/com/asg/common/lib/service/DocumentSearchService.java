@@ -8,6 +8,7 @@ import com.asg.common.lib.entity.DocumentEntity;
 import com.asg.common.lib.repository.DocumentCommonRepository;
 import com.asg.common.lib.repository.TableMetaRepository;
 import com.asg.common.lib.security.util.UserContext;
+import lombok.Data;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,43 @@ public class DocumentSearchService {
 
     @Autowired
     DocumentCommonRepository documentRepository;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    public DocumentInfo loadDocumentInfo(String docId) {
+        String sql = "{CALL PROC_GLOB_DOC_MASTER_VAL_LOAD(?,?,?,?)}";
+
+        return jdbcTemplate.execute(sql, (java.sql.CallableStatement stmt) -> {
+            stmt.setLong(1, UserContext.getGroupPoid());
+            stmt.setLong(2, UserContext.getCompanyPoid());
+            stmt.setString(3, docId);
+            stmt.registerOutParameter(4, java.sql.Types.REF_CURSOR);
+            stmt.execute();
+
+            try (java.sql.ResultSet rs = (java.sql.ResultSet) stmt.getObject(4)) {
+                if (rs.next()) {
+                    DocumentInfo info = new DocumentInfo();
+                    info.setDocShortName(rs.getString("DOC_SHORT_NAME"));
+                    info.setApprovalInfoFields(rs.getString("APPROVAL_INFO_FIELDS"));
+                    info.setDefaultListPeriod(rs.getString("DEFAULT_LIST_PERIOD"));
+                    info.setAttachmentChecklist(rs.getString("ATTACHMENT_CHECKLIST"));
+                    info.setDefaultSaveMode(rs.getString("DEFAULT_SAVE_MODE"));
+                    info.setGlDocument("Y".equalsIgnoreCase(rs.getString("GL_POSTING")));
+                    info.setInventoryDocument("Y".equalsIgnoreCase(rs.getString("INVENTORY_DOCUMENT")));
+                    info.setInventoryPosting("Y".equalsIgnoreCase(rs.getString("INVENTORY_POSTING")));
+                    info.setEditableOnSameDay("Y".equalsIgnoreCase(rs.getString("EDITABLE_ON_SAME_DAY")));
+                    info.setDocValidationFields(rs.getString("DOC_VALIDATION_FIELDS"));
+                    info.setStockPeriodStart(rs.getDate("STOCK_PERIOD_START"));
+                    info.setStockPeriodEnd(rs.getDate("STOCK_PERIOD_END"));
+                    info.setTransPeriodStart(rs.getDate("TRANS_PERIOD_START"));
+                    info.setTransPeriodEnd(rs.getDate("TRANS_PERIOD_END"));
+                    return info;
+                }
+            }
+            return null;
+        });
+    }
 
     // Used by search method for filtering
     public List<String> getSearchableFieldNames(DocumentEntity doc) {
@@ -116,10 +154,22 @@ public class DocumentSearchService {
 
         // Apply dynamic sorting from Pageable
         if (pageable.getSort().isSorted()) {
-            String orderBy = pageable.getSort().stream()
+            List<String> orderByClauses = pageable.getSort().stream()
                     .filter(order -> columnNames.contains(order.getProperty().toUpperCase()))
                     .map(order -> order.getProperty() + " " + order.getDirection().name())
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            boolean hasTransactionDateSort = pageable.getSort().stream()
+                    .anyMatch(order -> "TRANSACTION_DATE".equalsIgnoreCase(order.getProperty()));
+
+            boolean hasDocRefSort = pageable.getSort().stream()
+                    .anyMatch(order -> "DOC_REF".equalsIgnoreCase(order.getProperty()));
+
+            if (hasTransactionDateSort && !hasDocRefSort && columnNames.contains("DOC_REF")) {
+                orderByClauses.add("DOC_REF DESC");
+            }
+
+            String orderBy = String.join(", ", orderByClauses);
             if (!orderBy.isEmpty()) {
                 sqlBuilder.append(" ORDER BY ").append(orderBy);
             }
@@ -220,14 +270,19 @@ public class DocumentSearchService {
         for (Map.Entry<String, Object> entry : new ArrayList<>(row.entrySet())) {
             Object value = entry.getValue();
             if (value == null) continue;
+            
             Instant instant = null;
             if (value instanceof Timestamp ts) {
-                instant = ts.toInstant();
+                // Map the literal database time strictly to UTC to avoid JVM offset shifting
+                instant = ts.toLocalDateTime().toInstant(java.time.ZoneOffset.UTC);
             } else if (value instanceof java.sql.Date sqlDate) {
-                instant = new java.util.Date(sqlDate.getTime()).toInstant();
+                // Map the literal date strictly to UTC midnight
+                instant = sqlDate.toLocalDate().atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
             } else if (value instanceof java.util.Date date) {
-                instant = date.toInstant();
+                instant = java.time.LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault())
+                        .toInstant(java.time.ZoneOffset.UTC);
             }
+
             if (instant != null) {
                 row.put(entry.getKey(), instant.toString());
             }
@@ -350,4 +405,21 @@ public class DocumentSearchService {
         return "UPPER(" + field + ") LIKE ?";
     }
 
+    @Data
+    public static class DocumentInfo {
+        private String docShortName;
+        private String approvalInfoFields;
+        private String defaultListPeriod;
+        private String attachmentChecklist;
+        private String defaultSaveMode;
+        private boolean glDocument;
+        private boolean inventoryDocument;
+        private boolean inventoryPosting;
+        private boolean editableOnSameDay;
+        private String docValidationFields;
+        private java.sql.Date stockPeriodStart;
+        private java.sql.Date stockPeriodEnd;
+        private java.sql.Date transPeriodStart;
+        private java.sql.Date transPeriodEnd;
+    }
 }

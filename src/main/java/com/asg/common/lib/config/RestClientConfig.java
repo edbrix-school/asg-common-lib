@@ -15,9 +15,10 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestTemplate;
 
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 @Configuration
 public class RestClientConfig {
@@ -29,6 +30,7 @@ public class RestClientConfig {
     private int readTimeout;
 
     @Bean
+    @SuppressWarnings("deprecation")
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(connectTimeout);
@@ -38,8 +40,13 @@ public class RestClientConfig {
         
         ObjectMapper objectMapper = new ObjectMapper();
         JavaTimeModule javaTimeModule = new JavaTimeModule();
+        DateTimeFormatter localDateTimeFormatter = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendOptional(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .appendOptional(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"))
+            .toFormatter(Locale.ENGLISH);
         javaTimeModule.addDeserializer(java.time.LocalDateTime.class,
-            new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss")));
+            new LocalDateTimeDeserializer(localDateTimeFormatter));
         objectMapper.registerModule(javaTimeModule);
         objectMapper.registerModule(new ParameterNamesModule());
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

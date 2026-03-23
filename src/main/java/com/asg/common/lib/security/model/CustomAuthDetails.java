@@ -3,6 +3,7 @@ package com.asg.common.lib.security.model;
 public class CustomAuthDetails {
     private String actionRequested;
     private String documentId;
+    private String glPostingError;
     private String userName;
     private Long userPoid;
     private String userId;
@@ -30,6 +31,14 @@ public class CustomAuthDetails {
 
     public void setDocumentId(String documentId) {
         this.documentId = documentId;
+    }
+
+    public String getGlPostingError() {
+        return glPostingError;
+    }
+
+    public void setGlPostingError(String glPostingError) {
+        this.glPostingError = glPostingError;
     }
 
     public String getUserName() {
@@ -109,6 +118,7 @@ public class CustomAuthDetails {
     public static class Builder {
         private String actionRequested;
         private String documentId;
+        private String glPostingError;
         private String userName;
         private Long userPoid;
         private String userId;
@@ -126,6 +136,11 @@ public class CustomAuthDetails {
 
         public Builder documentId(String documentId) {
             this.documentId = documentId;
+            return this;
+        }
+
+        public Builder glPostingError(String glPostingError) {
+            this.glPostingError = glPostingError;
             return this;
         }
 
@@ -178,6 +193,7 @@ public class CustomAuthDetails {
             CustomAuthDetails details = new CustomAuthDetails();
             details.setActionRequested(this.actionRequested);
             details.setDocumentId(this.documentId);
+            details.setGlPostingError(this.glPostingError);
             details.setUserName(this.userName);
             details.setUserPoid(this.userPoid);
             details.setUserId(this.userId);

@@ -1,6 +1,7 @@
 package com.asg.common.lib.dto.response;
 
 import com.asg.common.lib.dto.AddressTypeMapDTO;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AddressMasterResponse {
     private Long addressMasterPoid;
     
