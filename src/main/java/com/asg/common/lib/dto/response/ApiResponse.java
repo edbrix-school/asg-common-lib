@@ -5,25 +5,33 @@ import com.asg.common.lib.security.util.UserContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ApiResponse {
 
     //Common method used to respond with success message in all controllers
     public static ResponseEntity<?> success(String message, Object data) {
-        return ResponseEntity.ok(Map.of(
+        String glError = UserContext.getGlPostingError();
+        Map<String, Object> body = new LinkedHashMap<>(Map.of(
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
                 "message", message,
                 "result", data != null ? Map.of("data", data) : ""
         ));
+        if (glError != null && !glError.isBlank()) body.put("errors", glError);
+        return ResponseEntity.ok(body);
     }
+
     public static ResponseEntity<?> success(String message) {
-        return ResponseEntity.ok(Map.of(
+        String glError = UserContext.getGlPostingError();
+        Map<String, Object> body = new LinkedHashMap<>(Map.of(
                 "statusCode", HttpStatus.OK.value(),
                 "success", true,
                 "message", message
         ));
+        if (glError != null && !glError.isBlank()) body.put("errors", glError);
+        return ResponseEntity.ok(body);
     }
 
 
