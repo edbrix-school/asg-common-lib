@@ -270,7 +270,7 @@ public class LovDataService {
 
 
                         List<LovGetListDto> paginatedList;
-                        if (pageSize <= 0 || SKIP_FILTER_LOV_NAMES.contains(lovName)) {
+                        if (pageSize <= 0 || ( SKIP_FILTER_LOV_NAMES.contains(lovName) && !"CUSTOMER_SUPPLIER_MASTER".equalsIgnoreCase(lovName) )) {
                             paginatedList = result; // return all
                         } else {
                             int fromIndex = Math.max(pageNumber * pageSize, 0);
