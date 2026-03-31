@@ -20,6 +20,7 @@ public enum LogDetailsEnum {
     ATTACHMENTS_DELETED("All attachments deleted "),
     ATTACHMENT_UPDATED("Attachment updated -"),
     ATTACHMENT_ARCHIVED("Attachment archived -"),
+    ATTACHMENT_UNARCHIVED("Attachment unarchived -"),
     ATTACHMENT_DOWNLOADED("Attachment viewed/downloaded -"),
     ATTACHMENT_VIEWED("Attachment viewed/downloaded -"),
     PREVIEWED_OR_PRINTED_OR_DOWNLOADED("Previewed/Printed/Downloaded -");
