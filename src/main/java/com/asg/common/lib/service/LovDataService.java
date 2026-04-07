@@ -135,7 +135,7 @@ public class LovDataService {
                             }
                             if ("GL_MASTER_LEDGERS_JV".equalsIgnoreCase(lovName)) {
                                 try {
-                                    dto.setControlAcNature(rs.getString("CONTROL_AC_NATURE"));
+                                    dto.setControlAcNature(rs.getString("CONTROL_AC_NATURE") != null ? rs.getString("CONTROL_AC_NATURE") : "");
                                 } catch (SQLException ignored) {}
                             }
                             result.add(dto);
