@@ -1,57 +1,119 @@
 package com.asg.common.lib.dto;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Sorts lists of arbitrary DTOs that expose {@code detRowId} via {@code getDetRowId()} or a field named {@code detRowId}.
- */
+
 public final class DetRowIdSort {
 
     private static final Comparator<Long> DET_ROW_ID_ORDER = Comparator.nullsLast(Long::compareTo);
 
-    private static final ConcurrentHashMap<Class<?>, DetRowIdAccessor> ACCESSORS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Class<?>, Optional<DetRowIdAccessor>> ACCESSORS = new ConcurrentHashMap<>();
 
     private DetRowIdSort() {
     }
 
     public static void sortAscending(List<?> list) {
-        if (list == null || list.size() <= 1) {
-            return;
-        }
-        list.sort(Comparator.comparing(DetRowIdSort::readDetRowId, DET_ROW_ID_ORDER));
+        sort(list, false);
     }
 
     public static void sortDescending(List<?> list) {
+        sort(list, true);
+    }
+
+    private static void sort(List<?> list, boolean descending) {
         if (list == null || list.size() <= 1) {
             return;
         }
-        list.sort(Comparator.comparing(DetRowIdSort::readDetRowId, DET_ROW_ID_ORDER).reversed());
+        int n = list.size();
+        Long[] keys = new Long[n];
+        for (int i = 0; i < n; i++) {
+            KeyResult kr = readKey(list.get(i));
+            if (!kr.ok) {
+                return;
+            }
+            keys[i] = kr.value;
+        }
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            order[i] = i;
+        }
+        if (descending) {
+            Arrays.sort(order, (a, b) -> DET_ROW_ID_ORDER.compare(keys[b], keys[a]));
+        } else {
+            Arrays.sort(order, (a, b) -> DET_ROW_ID_ORDER.compare(keys[a], keys[b]));
+        }
+        @SuppressWarnings("unchecked")
+        List<Object> target = (List<Object>) list;
+        Object[] snapshot = target.toArray(new Object[0]);
+        for (int i = 0; i < n; i++) {
+            target.set(i, snapshot[order[i]]);
+        }
     }
 
-    private static Long readDetRowId(Object element) {
+    private static KeyResult readKey(Object element) {
         if (element == null) {
-            return null;
+            return KeyResult.success(null);
         }
-        return ACCESSORS.computeIfAbsent(element.getClass(), DetRowIdSort::resolveAccessor).read(element);
+        Optional<DetRowIdAccessor> acc = ACCESSORS.computeIfAbsent(element.getClass(), DetRowIdSort::buildAccessorOptional);
+        if (acc.isEmpty()) {
+            return KeyResult.fail();
+        }
+        return acc.get().read(element);
     }
 
-    private static DetRowIdAccessor resolveAccessor(Class<?> clazz) {
-        Method getter = findNoArgMethod(clazz, "getDetRowId");
-        if (getter != null) {
-            getter.setAccessible(true);
-            return target -> invokeGetter(getter, target);
+    private static Optional<DetRowIdAccessor> buildAccessorOptional(Class<?> clazz) {
+        try {
+            Method getter = findNoArgMethod(clazz, "getDetRowId");
+            if (getter != null) {
+                getter.setAccessible(true);
+                return Optional.of(target -> readViaGetter(getter, target));
+            }
+            Field field = findDeclaredField(clazz, "detRowId");
+            if (field != null) {
+                field.setAccessible(true);
+                return Optional.of(target -> readViaField(field, target));
+            }
+        } catch (Throwable ignored) {
+            // leave list unsorted
         }
-        Field field = findDeclaredField(clazz, "detRowId");
-        if (field != null) {
-            field.setAccessible(true);
-            return target -> readField(field, target);
+        return Optional.empty();
+    }
+
+    private static KeyResult readViaGetter(Method getter, Object target) {
+        try {
+            Object value = getter.invoke(target);
+            return toLongResult(value);
+        } catch (Throwable ignored) {
+            return KeyResult.fail();
         }
-        throw new IllegalStateException("Cannot sort by detRowId: no getDetRowId() or detRowId field on " + clazz.getName());
+    }
+
+    private static KeyResult readViaField(Field field, Object target) {
+        try {
+            Object value = field.get(target);
+            return toLongResult(value);
+        } catch (Throwable ignored) {
+            return KeyResult.fail();
+        }
+    }
+
+    private static KeyResult toLongResult(Object value) {
+        if (value == null) {
+            return KeyResult.success(null);
+        }
+        if (value instanceof Long l) {
+            return KeyResult.success(l);
+        }
+        if (value instanceof Number n) {
+            return KeyResult.success(n.longValue());
+        }
+        return KeyResult.fail();
     }
 
     private static Method findNoArgMethod(Class<?> start, String name) {
@@ -79,42 +141,28 @@ public final class DetRowIdSort {
         return null;
     }
 
-    private static Long invokeGetter(Method getter, Object target) {
-        try {
-            Object value = getter.invoke(target);
-            return toLong(value, getter.getReturnType());
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException("Cannot read detRowId via " + getter, e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause() != null ? e.getCause() : e;
-            throw new IllegalStateException("getDetRowId() threw on " + target.getClass().getName(), cause);
-        }
-    }
-
-    private static Long readField(Field field, Object target) {
-        try {
-            Object value = field.get(target);
-            return toLong(value, field.getType());
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException("Cannot read detRowId field on " + target.getClass().getName(), e);
-        }
-    }
-
-    private static Long toLong(Object value, Class<?> declaredType) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Long l) {
-            return l;
-        }
-        if (value instanceof Number n) {
-            return n.longValue();
-        }
-        throw new IllegalStateException("detRowId must be numeric (e.g. Long/long), got runtime type " + value.getClass().getName() + " declared as " + declaredType.getName());
-    }
-
     @FunctionalInterface
     private interface DetRowIdAccessor {
-        Long read(Object target);
+        KeyResult read(Object target);
+    }
+
+    private static final class KeyResult {
+        private static final KeyResult FAIL = new KeyResult(null, false);
+
+        final Long value;
+        final boolean ok;
+
+        private KeyResult(Long value, boolean ok) {
+            this.value = value;
+            this.ok = ok;
+        }
+
+        static KeyResult success(Long value) {
+            return new KeyResult(value, true);
+        }
+
+        static KeyResult fail() {
+            return FAIL;
+        }
     }
 }
