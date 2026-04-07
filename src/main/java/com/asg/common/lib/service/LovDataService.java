@@ -133,6 +133,11 @@ public class LovDataService {
                             if (includeUsers) {
                                 dto.setUsers(rs.getString("USERS"));
                             }
+                            if ("GL_MASTER_LEDGERS_JV".equalsIgnoreCase(lovName)) {
+                                try {
+                                    dto.setControlAcNature(rs.getString("CONTROL_AC_NATURE"));
+                                } catch (SQLException ignored) {}
+                            }
                             result.add(dto);
                         }
 
@@ -219,6 +224,11 @@ public class LovDataService {
                                                     dto.setSeqNo(fullRs.getInt("SEQNO"));
                                                 } catch (SQLException ignored) {
                                                     dto.setSeqNo(0);
+                                                }
+                                                if ("GL_MASTER_LEDGERS_JV".equalsIgnoreCase(lovName)) {
+                                                    try {
+                                                        dto.setControlAcNature(fullRs.getString("CONTROL_AC_NATURE"));
+                                                    } catch (SQLException ignored) {}
                                                 }
 
                                                 defaultValues.add(dto);
@@ -483,9 +493,9 @@ public class LovDataService {
                     dto = defaultValues.stream()
                             .filter(x -> x.getPoid().equals(poid))
                             .findAny()
-                            .orElse(new LovGetListDto(poid, null, null, null, null, null, null));
+                            .orElse(new LovGetListDto(poid, null, null, null, null, null, null,null));
                 } else {
-                    dto = new LovGetListDto(poid, null, null, null, null, null, null);
+                    dto = new LovGetListDto(poid, null, null, null, null, null, null,null);
                 }
             }
         }
@@ -523,9 +533,9 @@ public class LovDataService {
                     dto = defaultValues.stream()
                             .filter(x -> x.getCode().equalsIgnoreCase(code))
                             .findAny()
-                            .orElse(new LovGetListDto(null, code, null, null, null, null, null));
+                            .orElse(new LovGetListDto(null, code, null, null, null, null, null,null));
                 } else {
-                    dto = new LovGetListDto(null, code, null, null, null, null, null);
+                    dto = new LovGetListDto(null, code, null, null, null, null, null,null);
                 }
             }
         }
@@ -603,6 +613,6 @@ public class LovDataService {
                 }
             }
         }
-        return dto != null ? dto : new LovGetListDto(poid, null, null, null, null, null, null);
+        return dto != null ? dto : new LovGetListDto(poid, null, null, null, null, null, null,null);
     }
 }

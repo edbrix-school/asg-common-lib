@@ -17,4 +17,6 @@ public class LovGetListDto {
     private Integer seqNo;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String users;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String controlAcNature;
 }
