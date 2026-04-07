@@ -31,6 +31,8 @@ public class LovDataService {
             "TERMS_TEMPLATE_MASTER",
             "CHQ_RETURN_RECEIPT_NO",
             "BENEFICIARY_NAME",
+            "OPS_PC_BERTH_LIST",
+            "OPS_PC_CARGO",
             "CUSTOMER_SUPPLIER_MASTER"
     );
 
