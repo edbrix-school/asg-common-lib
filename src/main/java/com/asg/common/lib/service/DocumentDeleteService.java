@@ -130,17 +130,17 @@ public class DocumentDeleteService {
             stmt.execute();
 
             String result = stmt.getString(11);
-
+            String docRef = fetchDocRef(tableName, poidColumnName, docKeyPoid);
             if (result != null && result.contains("SUCCESS")) {
                 String logDetails = deleteReason != null ? deleteReason.getDeleteReason() : "";
                 loggingService.createLogSummaryEntry(
                         docId,
                         String.valueOf(docKeyPoid),
-                        String.format("Deleted - %s - %s", docKeyPoid, logDetails)
+                        String.format("Deleted - %s - %s", docRef, logDetails)
                 );
                 return result;
             } else {
-                String docRef = fetchDocRef(tableName, poidColumnName, docKeyPoid);
+
                 loggingService.createLogSummaryEntry(
                         docId,
                         String.valueOf(docKeyPoid),
