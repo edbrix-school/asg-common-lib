@@ -1,9 +1,9 @@
 package com.asg.common.lib.enums;
 
 public enum LogDetailsEnum {
-    VIEWED("Viewed -"),
+    VIEWED("Viewed"),
     CREATED("Created -"),
-    MODIFIED("Modified -"),
+    MODIFIED("Modified"),
     DEACTIVATED("Deactivated -"),
     DELETED("Deleted -"),
     APPROVED("Approved -"),
