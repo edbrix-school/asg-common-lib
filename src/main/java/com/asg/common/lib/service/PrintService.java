@@ -6,12 +6,19 @@ import com.asg.common.lib.utility.DateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
 import net.sf.jasperreports.engine.export.JRPdfExporter;
 import net.sf.jasperreports.export.SimpleExporterInput;
 import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimplePrintServiceExporterConfiguration;
 import net.sf.jasperreports.export.SimplePdfExporterConfiguration;
 import org.springframework.stereotype.Service;
 
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.Copies;
+import javax.print.attribute.standard.JobName;
+import javax.print.PrintServiceLookup;
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -85,6 +92,66 @@ public class PrintService {
                         params.get("DOC_KEY_POID").toString());
             }
             return outputStream.toByteArray();
+        }
+    }
+
+    /**
+     * Print a JasperReport silently to a named OS/network printer.
+     * This does not return a PDF to the caller.
+     */
+    public void printReportToPrinter(JasperReport report,
+                                     Map<String, Object> params,
+                                     DataSource dataSource,
+                                     String printerName,
+                                     int copies) throws Exception {
+        if (printerName == null || printerName.isBlank()) {
+            throw new IllegalArgumentException("printerName is required");
+        }
+        int effectiveCopies = Math.max(1, copies);
+
+        javax.print.PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
+        javax.print.PrintService selected = null;
+        if (services != null) {
+            for (javax.print.PrintService s : services) {
+                if (s != null && printerName.equalsIgnoreCase(s.getName())) {
+                    selected = s;
+                    break;
+                }
+            }
+        }
+        if (selected == null) {
+            throw new RuntimeException("Printer not found: " + printerName);
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            params.put("REPORT_CLASS_LOADER", PrintService.class.getClassLoader());
+            JasperPrint jasperPrint = JasperFillManager.fillReport(report, params, conn);
+
+            JRPrintServiceExporter exporter = new JRPrintServiceExporter();
+            exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+
+            PrintRequestAttributeSet printRequestAttributes = new HashPrintRequestAttributeSet();
+            printRequestAttributes.add(new Copies(effectiveCopies));
+            String jobName = params.get("DOC_ID").toString() + "_" + params.get("DOC_KEY_POID").toString();
+            printRequestAttributes.add(new JobName(jobName, null));
+
+            SimplePrintServiceExporterConfiguration configuration = new SimplePrintServiceExporterConfiguration();
+            configuration.setPrintService(selected);
+            configuration.setPrintRequestAttributeSet(printRequestAttributes);
+            configuration.setDisplayPageDialog(false);
+            configuration.setDisplayPrintDialog(false);
+            exporter.setConfiguration(configuration);
+
+            exporter.exportReport();
+
+            if (null != loggingService
+                    && params != null
+                    && params.containsKey("DOC_KEY_POID") && params.get("DOC_KEY_POID") != null
+                    && params.containsKey("DOC_ID") && params.get("DOC_ID") != null) {
+                loggingService.createLogSummaryEntry(LogDetailsEnum.PREVIEWED_OR_PRINTED_OR_DOWNLOADED,
+                        params.get("DOC_ID").toString(),
+                        params.get("DOC_KEY_POID").toString());
+            }
         }
     }
 
