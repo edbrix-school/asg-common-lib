@@ -33,7 +33,9 @@ public class LovDataService {
             "BENEFICIARY_NAME",
             "OPS_PC_BERTH_LIST",
             "OPS_PC_CARGO",
-            "CUSTOMER_SUPPLIER_MASTER"
+            "CUSTOMER_SUPPLIER_MASTER",
+            "OPS_PC_PDA_REF",
+            "OPS_PC_FDA_REF"
     );
 
 
