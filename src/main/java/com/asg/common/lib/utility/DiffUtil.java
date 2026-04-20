@@ -169,7 +169,7 @@ public final class DiffUtil {
     private static BigDecimal scaleBigDecimal(BigDecimal value) {
         Long companyPoid = UserContext.getCompanyPoid();
         if (companyPoid == null) {
-            return value.stripTrailingZeros();
+            return value.setScale(3, RoundingMode.DOWN);
         }
         
         Map<Long, Integer> cache = cachedDecimals.get();
@@ -181,7 +181,7 @@ public final class DiffUtil {
         Integer decimals = cache.get(companyPoid);
         if (decimals == null) {
             if (jdbcTemplate == null) {
-                return value.stripTrailingZeros();
+                return value.setScale(3, RoundingMode.DOWN);
             }
             try {
                 decimals = jdbcTemplate.queryForObject(
@@ -191,10 +191,12 @@ public final class DiffUtil {
                     companyPoid
                 );
             } catch (Exception e) {
-                return value.stripTrailingZeros();
+                decimals = 3;
+                cache.put(companyPoid, decimals);
             }
             if (decimals == null) {
-                return value.stripTrailingZeros();
+                decimals = 3;
+                cache.put(companyPoid, decimals);
             }
             cache.put(companyPoid, decimals);
         }
