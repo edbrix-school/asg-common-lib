@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "pagination")
 public class PaginationProperties {
     private int pageNumber = 0;
-    private int pageSize = 10;
+    private int pageSize = 20;
     private String sortBy = "id";
     private String sortDir = "asc";
 }
