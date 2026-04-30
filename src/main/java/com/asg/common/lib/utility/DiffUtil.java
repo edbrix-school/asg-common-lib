@@ -82,8 +82,8 @@ public final class DiffUtil {
                     if (!areEqual(oldValue, normalizedNewValue)) {
                         diffs.add(new DiffObject(
                                 field.getName(),
-                                formatForLog(oldValue),
-                                formatForLog(normalizedNewValue)
+                                formatForLog(oldValue, field.getName()),
+                                formatForLog(normalizedNewValue, field.getName())
                         ));
                     }
 
@@ -206,7 +206,7 @@ public final class DiffUtil {
     /**
      * Ensures consistent and readable audit log values.
      */
-    private static String formatForLog(Object value) {
+    private static String formatForLog(Object value, String fieldName) {
         if (value == null) {
             return null;
         }
@@ -218,8 +218,20 @@ public final class DiffUtil {
             case Instant i -> i.toString();
             case LocalDateTime ldt -> ldt.toString();
             case LocalDate ld -> ld.toString();
-            case BigDecimal bd -> scaleBigDecimal(bd).toPlainString();
-            case Double d -> scaleBigDecimal(BigDecimal.valueOf(d)).toPlainString();
+            case BigDecimal bd -> {
+                // Special handling for tax percentage fields - exact match
+                if (fieldName != null && fieldName.equals("taxPercentage")) {
+                    yield bd.setScale(0, RoundingMode.DOWN).toPlainString();
+                }
+                yield scaleBigDecimal(bd).toPlainString();
+            }
+            case Double d -> {
+                // Special handling for tax percentage fields - exact match
+                if (fieldName != null && fieldName.equals("taxPercentage")) {
+                    yield String.valueOf(d.intValue());
+                }
+                yield scaleBigDecimal(BigDecimal.valueOf(d)).toPlainString();
+            }
             default -> value.toString();
         };
     }
