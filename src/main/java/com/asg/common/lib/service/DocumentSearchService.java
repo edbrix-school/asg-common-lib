@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -271,20 +272,20 @@ public class DocumentSearchService {
             Object value = entry.getValue();
             if (value == null) continue;
             
-            Instant instant = null;
+            LocalDateTime localDateTime = null;
             if (value instanceof Timestamp ts) {
-                // Map the literal database time strictly to UTC to avoid JVM offset shifting
-                instant = ts.toLocalDateTime().toInstant(java.time.ZoneOffset.UTC);
+                // Keep the literal database time as local datetime (no timezone conversion)
+                localDateTime = ts.toLocalDateTime();
             } else if (value instanceof java.sql.Date sqlDate) {
-                // Map the literal date strictly to UTC midnight
-                instant = sqlDate.toLocalDate().atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
+                // Keep the literal date as local datetime at midnight
+                localDateTime = sqlDate.toLocalDate().atStartOfDay();
             } else if (value instanceof java.util.Date date) {
-                instant = java.time.LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault())
-                        .toInstant(java.time.ZoneOffset.UTC);
+                // Convert util.Date to local datetime at system default timezone
+                localDateTime = java.time.LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault());
             }
 
-            if (instant != null) {
-                row.put(entry.getKey(), instant.toString());
+            if (localDateTime != null) {
+                row.put(entry.getKey(), localDateTime.toString());
             }
         }
     }
