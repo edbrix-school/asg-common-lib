@@ -315,29 +315,26 @@ public class ExcelExportService {
         return result.toString();
     }
 
+    private void handleCompanyPoidParam(Map<String, Object> params, String paramKey) {
+        Object value = params.get(paramKey);
+        if (!(value instanceof List<?> list)) return;
+        boolean contains999 = list.contains(999) || list.contains("999");
+        if (list.size() == 1 || contains999) {
+            params.put(paramKey, list.getFirst());
+        } else {
+            params.put(paramKey + "_CSV", list.stream().map(Object::toString).collect(Collectors.joining(",")));
+            params.put(paramKey, list.getFirst());
+        }
+    }
+
     private String convertParametersToString(Map<String, Object> parameters) {
         if (parameters == null || parameters.isEmpty()) {
             return null;
         }
         Map<String, Object> modifiedParams = new HashMap<>(parameters);
 
-        // Handle COMPANY_POID parameter - single value or CSV
-        Object companyPoid = modifiedParams.get("COMPANY_POID");
-        if (companyPoid instanceof List<?> companyList) {
-            // 999 - All Companies Check
-            boolean contains999 = companyList.contains(999) || companyList.contains("999");
-            if (companyList.size() == 1 || contains999) {
-                // Single value or contains 999 - keep as COMPANY_POID
-                modifiedParams.put("COMPANY_POID", companyList.getFirst());
-            } else {
-                // Multiple values - add as CSV
-                String commaSeparated = companyList.stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(","));
-                modifiedParams.put("COMPANY_POID_CSV", commaSeparated);
-                modifiedParams.put("COMPANY_POID", companyList.getFirst());
-            }
-        }
+        handleCompanyPoidParam(modifiedParams, "COMPANY_POID");
+        handleCompanyPoidParam(modifiedParams, "P_COMPANY_POID");
 
         StringBuilder result = new StringBuilder();
         for (Map.Entry<String, Object> entry : modifiedParams.entrySet()) {
