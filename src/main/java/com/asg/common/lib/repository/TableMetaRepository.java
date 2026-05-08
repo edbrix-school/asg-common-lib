@@ -51,8 +51,6 @@ public class TableMetaRepository {
     public List<Map<String, Object>> executeDynamicQuery(String sql, List<Object> params,List<String> cols) {
         Query q = em.createNativeQuery(sql);
 
-        System.out.println("Executing native final SQL = " + renderSqlWithParams(sql, params));
-
         for (int i = 0; i < params.size(); i++) {
             q.setParameter(i + 1, params.get(i)); // positional binding starts at 1
         }
@@ -101,17 +99,6 @@ public class TableMetaRepository {
         return sql + " WHERE ROWNUM <= 1";
     }
 
-    /** Render SQL with positional params for logging */
-    public String renderSqlWithParams(String sql, List<Object> params) {
-        String rendered = sql;
-        for (Object param : params) {
-            String value = (param instanceof String)
-                    ? "'" + param + "'"   // wrap strings in quotes
-                    : String.valueOf(param);
-            rendered = rendered.replaceFirst("\\?", value);
-        }
-        return rendered;
-    }
     /** Execute a COUNT(*) query and return total record count */
     public Long executeCountQuery(String sql, List<Object> params) {
         Query q = em.createNativeQuery(sql);
