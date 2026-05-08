@@ -58,11 +58,10 @@ public class ExcelExportService {
 
     private XSSFWorkbook createWorkbook(ExcelSheetConfig firstSheet) throws IOException {
         if (firstSheet.getExcelTemplateFile() != null) {
-            try (InputStream is = getClass().getResourceAsStream(
-                    "/ExcelTemplates/" + firstSheet.getExcelTemplateFile())) {
-                if (is != null) {
-                    return new XSSFWorkbook(is);
-                }
+            InputStream is = getClass().getResourceAsStream(
+                    "/ExcelTemplates/" + firstSheet.getExcelTemplateFile());
+            if (is != null) {
+                return new XSSFWorkbook(is);
             }
         }
         return new XSSFWorkbook();
@@ -70,6 +69,12 @@ public class ExcelExportService {
 
     private void processSheet(XSSFWorkbook workbook, ExcelSheetConfig config) throws Exception {
         XSSFSheet sheet = workbook.getSheet(config.getSheetName());
+        if (sheet == null && config.getSheetId() != null) {
+            int sheetIndex = Integer.parseInt(config.getSheetId()) - 1;
+            if (sheetIndex >= 0 && sheetIndex < workbook.getNumberOfSheets()) {
+                sheet = workbook.getSheetAt(sheetIndex);
+            }
+        }
         if (sheet == null) {
             sheet = workbook.createSheet(config.getSheetName());
         }

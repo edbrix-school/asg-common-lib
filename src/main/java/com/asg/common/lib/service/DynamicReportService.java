@@ -145,7 +145,7 @@ public class DynamicReportService {
                 defValue1 = getDateTruncated(getLoginReportPeriodStart());
                 break;
             case "#TODAY#":
-                defValue1 = getDateTruncated((Date) new java.util.Date());
+                defValue1 = getDateTruncated(new java.util.Date());
                 break;
             case "#LOGIN_COMPANY_POID#":
                 defValue1 = getCompanyPoid();
