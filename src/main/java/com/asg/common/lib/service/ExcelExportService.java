@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.sql.Blob;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -332,6 +336,27 @@ public class ExcelExportService {
         }
     }
 
+    private static final DateTimeFormatter ORACLE_DATE_FORMAT = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
+
+    private static final DateTimeFormatter ISO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    private String formatParamValue(Object value) {
+        if (value instanceof LocalDate ld) return toOracleDate(ld);
+        if (value instanceof LocalDateTime ldt) return toOracleDate(ldt.toLocalDate());
+        if (value instanceof java.sql.Date sd) return toOracleDate(sd.toLocalDate());
+        if (value instanceof Date d) return toOracleDate(new java.sql.Date(d.getTime()).toLocalDate());
+        if (value instanceof String s) {
+            try {
+                return toOracleDate(LocalDate.parse(s, ISO_DATE_FORMAT));
+            } catch (Exception ignored) {}
+        }
+        return value.toString();
+    }
+
+    private String toOracleDate(LocalDate date) {
+        return "TO_DATE('" + date.format(ORACLE_DATE_FORMAT) + "','DD-MON-YYYY')";
+    }
+
     private String convertParametersToString(Map<String, Object> parameters) {
         if (parameters == null || parameters.isEmpty()) {
             return null;
@@ -346,7 +371,7 @@ public class ExcelExportService {
             if (!result.isEmpty()) {
                 result.append(";");
             }
-            result.append(entry.getKey()).append("=").append(entry.getValue());
+            result.append(entry.getKey()).append("=").append(formatParamValue(entry.getValue()));
         }
         return result.toString();
     }
