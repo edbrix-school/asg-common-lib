@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -22,7 +23,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -121,24 +121,26 @@ public class LoggingService {
         logDetails = logDetails == null ? "" : logDetails;
         logTable = logTable == null ? "" : logTable;
 
-        try (Connection con = dataSource.getConnection();
-             CallableStatement stmt = con.prepareCall(
-                     "{call PROC_UPDATE_LOG_DETAILS(?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (CallableStatement stmt = con.prepareCall(
+                "{call PROC_UPDATE_LOG_DETAILS(?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
 
-            stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());      // P_LOGDATETIME
-            stmt.setString(3, logDetails);                             // P_LOGDETAILS
-            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
-            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
-            stmt.setString(6, fieldName);                              // P_FIELD_NAME
-            stmt.setString(7, oldValue);                               // P_OLD_VALUE
-            stmt.setString(8, newValue);                               // P_NEW_VALUE
-            stmt.setString(9, logTable);                               // P_LOG_TABLE
+            stmt.setLong(1, userPoid);
+            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());
+            stmt.setString(3, logDetails);
+            stmt.setString(4, docId);
+            stmt.setString(5, docKeyPoid);
+            stmt.setString(6, fieldName);
+            stmt.setString(7, oldValue);
+            stmt.setString(8, newValue);
+            stmt.setString(9, logTable);
 
             stmt.execute();
 
         } catch (SQLException e) {
             throw new RuntimeException("Error calling PROC_UPDATE_LOG_DETAILS", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
         }
     }
 
@@ -222,19 +224,21 @@ public class LoggingService {
 
         // Build meaningful log text
 
-        try (Connection con = dataSource.getConnection();
-             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
 
-            stmt.setLong(1, userPoid);                                 // P_USER_POID
-            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());      // P_LOGDATETIME
-            stmt.setString(3, logDetails);                             // P_LOGDETAILS
-            stmt.setString(4, docId);                                  // P_LOG_DOC_ID
-            stmt.setString(5, docKeyPoid);                             // P_LOG_DOC_KEY_POID
+            stmt.setLong(1, userPoid);
+            stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());
+            stmt.setString(3, logDetails);
+            stmt.setString(4, docId);
+            stmt.setString(5, docKeyPoid);
 
             stmt.execute();
 
         } catch (SQLException e) {
             throw new RuntimeException("Error calling PROC_UPDATE_LOG_SUMMARY", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
         }
     }
 
