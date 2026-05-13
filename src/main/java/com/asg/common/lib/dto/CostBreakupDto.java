@@ -12,7 +12,7 @@ public class CostBreakupDto {
     private String glCode;
     private String glDescription;
     private String costGroup;
-    private Long costPoid;
+    private String costPoid;
     private BigDecimal amt;
     private String glCompany;
 }
