@@ -13,7 +13,6 @@ import com.asg.common.lib.utility.DateUtil;
 import com.asg.common.lib.utility.DiffUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,13 +21,36 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
 public class LoggingService {
+
+    private static final Pattern ORACLE_SHORT_DATE_PATTERN =
+            Pattern.compile("\\bDate-(\\d{1,2})-([A-Za-z]{3})-(\\d{2}|\\d{4})\\b");
+
+    private static final DateTimeFormatter ORACLE_SHORT_DATE_FORMATTER = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern("d-MMM-")
+            .appendValueReduced(ChronoField.YEAR, 2, 2, 2000)
+            .toFormatter(Locale.ENGLISH);
+
+    private static final DateTimeFormatter ORACLE_FULL_DATE_FORMATTER = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern("d-MMM-uuuu")
+            .toFormatter(Locale.ENGLISH);
+
+    private static final DateTimeFormatter LOG_DISPLAY_DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("dd-MMM-uuuu", Locale.ENGLISH);
 
     @Autowired
     private LoggingRepository loggingRepository;
@@ -151,11 +173,38 @@ public class LoggingService {
                 ts != null ? ts.toLocalDateTime() : null,
                 (String) row.get("userName"),
                 (Long) row.get("logUserPoid"),
-                (String) row.get("logDetails"),
+                formatDatesInLogDetails((String) row.get("logDetails")),
                 (String) row.get("fieldName"),
                 (String) row.get("oldValue"),
                 (String) row.get("newValue")
         );
+    }
+
+    private String formatDatesInLogDetails(String logDetails) {
+        if (logDetails == null || logDetails.isBlank()) {
+            return logDetails;
+        }
+
+        Matcher matcher = ORACLE_SHORT_DATE_PATTERN.matcher(logDetails);
+        StringBuilder formattedLogDetails = new StringBuilder();
+
+        while (matcher.find()) {
+            String dateText = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3);
+            DateTimeFormatter sourceFormatter = matcher.group(3).length() == 2
+                    ? ORACLE_SHORT_DATE_FORMATTER
+                    : ORACLE_FULL_DATE_FORMATTER;
+
+            try {
+                String formattedDate = LocalDate.parse(dateText, sourceFormatter)
+                        .format(LOG_DISPLAY_DATE_FORMATTER);
+                matcher.appendReplacement(formattedLogDetails, Matcher.quoteReplacement("Date-" + formattedDate));
+            } catch (Exception ignored) {
+                matcher.appendReplacement(formattedLogDetails, Matcher.quoteReplacement(matcher.group()));
+            }
+        }
+
+        matcher.appendTail(formattedLogDetails);
+        return formattedLogDetails.toString();
     }
 
     // ----------------------------------------------------------
