@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -110,6 +111,8 @@ public class PrintService {
         int effectiveCopies = Math.max(1, copies);
 
         javax.print.PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
+        log.info("the printer has fetched and total number of printers available are " + services.length);
+        Arrays.stream(services).forEach(val -> log.info("the printer name was " + val.getName()));
         javax.print.PrintService selected = null;
         if (services != null) {
             for (javax.print.PrintService s : services) {
