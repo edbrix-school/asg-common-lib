@@ -14,41 +14,37 @@ import java.util.List;
 public class AddressTypeMapDTO {
     @Valid
     @JsonProperty("MAIN")
-    private List<AddressDetailsDTO> MAIN;
+    private List<AddressDetailsDTO> main;
 
     @Valid
     @JsonProperty("FINANCE")
-    private List<AddressDetailsDTO> FINANCE;
+    private List<AddressDetailsDTO> finance;
 
     @Valid
     @JsonProperty("SALES")
-    private List<AddressDetailsDTO> SALES;
+    private List<AddressDetailsDTO> sales;
 
     @Valid
-    @JsonProperty("OPERATIONS")
-    private List<AddressDetailsDTO> OPERATIONS;
+    @JsonProperty("OPERATION")
+    private List<AddressDetailsDTO> operation;
 
     @Valid
-    @JsonProperty("INVOICE")
-    private List<AddressDetailsDTO> INVOICE;
+    @JsonProperty("INVOICE_ADDRESS")
+    private List<AddressDetailsDTO> invoiceAddress;
 
     @Valid
     @JsonProperty("DELIVERY_ORDER")
-    private List<AddressDetailsDTO> DELIVERY_ORDER;
-
-    @Valid
-    @JsonProperty("CARGO_ARRIVAL_NOTICE")
-    private List<AddressDetailsDTO> CARGO_ARRIVAL_NOTICE;
+    private List<AddressDetailsDTO> deliveryOrder;
 
     @Valid
     @JsonProperty("SHIP_CHANDLING")
-    private List<AddressDetailsDTO> SHIP_CHANDLING;
+    private List<AddressDetailsDTO> shipChandling;
 
     @Valid
     @JsonProperty("CLAIM_UAC")
-    private List<AddressDetailsDTO> CLAIM_UAC;
+    private List<AddressDetailsDTO> claimUac;
 
     @Valid
     @JsonProperty("CAN")
-    private List<AddressDetailsDTO> CAN;
+    private List<AddressDetailsDTO> can;
 }
