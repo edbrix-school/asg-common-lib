@@ -79,6 +79,21 @@ public class DocumentSearchService {
                 : tableMetaRepository.getColumnsFromTable(doc.getMainTableName());
     }
 
+    /** Get column datatypes for case-insensitive sorting */
+    private Map<String, String> getColumnDataTypes(DocumentEntity doc) {
+        String sql = doc.getListOfRecordsSql();
+
+        return (sql != null && !sql.isBlank())
+                ? tableMetaRepository.getColumnTypesFromSql(sql)
+                : tableMetaRepository.getColumnTypesFromTable(doc.getMainTableName());
+    }
+
+    /** Check if column is VARCHAR type for case-insensitive sorting */
+    private boolean isVarcharColumn(String columnName, Map<String, String> columnTypes) {
+        String dataType = columnTypes.get(columnName.toUpperCase());
+        return dataType != null && (dataType.contains("VARCHAR") || dataType.contains("CHAR") || dataType.contains("TEXT"));
+    }
+
     /**
      * Search with filters (globalsearch + field filters + pagination)
      */
@@ -103,7 +118,7 @@ public class DocumentSearchService {
         Clause clause = buildWhereClause(doc, columnNames, filters, operator, isDeleted);
 
         // Apply sorting and get the SQL with WHERE clause
-        String sortedSql = applySorting(baseSql, pageable, columnNames, clause.sql());
+        String sortedSql = applySorting(baseSql, pageable, columnNames, clause.sql(), doc);
 
         // Add pagination
         String finalSql = sortedSql + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -144,7 +159,7 @@ public class DocumentSearchService {
     /**
      * Helper to apply sorting; respects Pageable first, otherwise uses SQL order, else unsorted
      */
-    private String applySorting(String baseSql, Pageable pageable, List<String> columnNames, String whereClause) {
+    private String applySorting(String baseSql, Pageable pageable, List<String> columnNames, String whereClause, DocumentEntity doc) {
 
         // Strip ORDER BY from base SQL if Pageable has sorting (remove only inside the first parentheses)
         String sql = pageable.getSort().isSorted()
@@ -155,9 +170,22 @@ public class DocumentSearchService {
 
         // Apply dynamic sorting from Pageable
         if (pageable.getSort().isSorted()) {
+            // Get column datatypes for case-insensitive sorting
+            Map<String, String> columnTypes = getColumnDataTypes(doc);
+            
             List<String> orderByClauses = pageable.getSort().stream()
                     .filter(order -> columnNames.contains(order.getProperty().toUpperCase()))
-                    .map(order -> order.getProperty() + " " + order.getDirection().name())
+                    .map(order -> {
+                        String columnName = order.getProperty();
+                        String direction = order.getDirection().name();
+                        
+                        // Apply case-insensitive sorting only for VARCHAR columns
+                        if (isVarcharColumn(columnName, columnTypes)) {
+                            return "LOWER(" + columnName + ") " + direction;
+                        } else {
+                            return columnName + " " + direction;  // Keep dates/numbers as-is
+                        }
+                    })
                     .collect(Collectors.toCollection(ArrayList::new));
 
             boolean hasTransactionDateSort = pageable.getSort().stream()
