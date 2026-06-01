@@ -131,6 +131,7 @@ public class DocumentDeleteService {
 
             String result = stmt.getString(11);
             String docRef = fetchDocRef(tableName, poidColumnName, docKeyPoid);
+            docRef = docRef == null ? "" : docRef;
             if (result != null && result.contains("SUCCESS")) {
                 String logDetails = deleteReason != null ? deleteReason.getDeleteReason() : "";
                 loggingService.createLogSummaryEntry(
