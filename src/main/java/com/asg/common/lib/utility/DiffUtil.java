@@ -223,14 +223,14 @@ public final class DiffUtil {
                 if (fieldName != null && fieldName.equals("taxPercentage")) {
                     yield bd.setScale(0, RoundingMode.DOWN).toPlainString();
                 }
-                yield scaleBigDecimal(bd).toPlainString();
+                yield scaleBigDecimal(bd).stripTrailingZeros().toPlainString();
             }
             case Double d -> {
                 // Special handling for tax percentage fields - exact match
                 if (fieldName != null && fieldName.equals("taxPercentage")) {
                     yield String.valueOf(d.intValue());
                 }
-                yield scaleBigDecimal(BigDecimal.valueOf(d)).toPlainString();
+                yield scaleBigDecimal(BigDecimal.valueOf(d)).stripTrailingZeros().toPlainString();
             }
             default -> value.toString();
         };

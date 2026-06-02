@@ -108,4 +108,34 @@ public class TableMetaRepository {
         Object singleResult = q.getSingleResult();
         return ((Number) singleResult).longValue();
     }
+
+    /** Get column types from given SQL */
+    public Map<String, String> getColumnTypesFromSql(String sql) {
+        return getColumnTypes(sql, true);
+    }
+
+    /** Get column types from the main table */
+    public Map<String, String> getColumnTypesFromTable(String tableName) {
+        return getColumnTypes(tableName, false);
+    }
+
+    /** Get column names and types (from SQL or main table) */
+    private Map<String, String> getColumnTypes(String source, boolean isSql) {
+        return em.unwrap(Session.class).doReturningWork(conn -> {
+            String sql = isSql
+                    ? withRownumLimit(normalizeSql(source))
+                    : withRownumLimit("SELECT * FROM " + source);
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ResultSetMetaData meta = ps.executeQuery().getMetaData();
+                Map<String, String> columnTypes = new LinkedHashMap<>();
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                    String columnName = meta.getColumnName(i).toUpperCase();
+                    String columnType = meta.getColumnTypeName(i).toUpperCase();
+                    columnTypes.put(columnName, columnType);
+                }
+                return columnTypes;
+            }
+        });
+    }
 }
