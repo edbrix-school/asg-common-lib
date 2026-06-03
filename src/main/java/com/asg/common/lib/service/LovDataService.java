@@ -546,6 +546,47 @@ public class LovDataService {
         return dto;
     }
 
+    @SuppressWarnings("unchecked")
+    public Map<Long, LovGetListDto> getDetailsByPoidsAndLovName(List<Long> poids, String lovName) {
+        if (poids == null || lovName == null || lovName.isEmpty()) return Collections.emptyMap();
+        List<Long> distinctPoids = poids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (distinctPoids.isEmpty()) return Collections.emptyMap();
+
+        Map<String, Object> listValue = this.getLovList(
+                "", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
+                lovName, 0, 0, "", "", null, distinctPoids);
+
+        Map<Long, LovGetListDto> result = new HashMap<>();
+        if (listValue != null) {
+            List<LovGetListDto> data = (List<LovGetListDto>) listValue.get("data");
+            if (data != null) data.stream().filter(d -> d.getPoid() != null).forEach(d -> result.put(d.getPoid(), d));
+            List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+            if (defaultValues != null) defaultValues.stream().filter(d -> d.getPoid() != null).forEach(d -> result.putIfAbsent(d.getPoid(), d));
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, LovGetListDto> getDetailsByCodesAndLovName(List<String> codes, String lovName) {
+        if (codes == null || lovName == null || lovName.isEmpty()) return Collections.emptyMap();
+        List<String> distinctCodes = codes.stream()
+                .filter(c -> c != null && !c.isEmpty()).distinct().collect(Collectors.toList());
+        if (distinctCodes.isEmpty()) return Collections.emptyMap();
+
+        Map<String, Object> listValue = this.getLovList(
+                "", UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid(),
+                lovName, 0, 0, "", "", distinctCodes, null);
+
+        Map<String, LovGetListDto> result = new HashMap<>();
+        if (listValue != null) {
+            List<LovGetListDto> data = (List<LovGetListDto>) listValue.get("data");
+            if (data != null) data.stream().filter(d -> d.getCode() != null).forEach(d -> result.put(d.getCode(), d));
+            List<LovGetListDto> defaultValues = (List<LovGetListDto>) listValue.get("defaultValues");
+            if (defaultValues != null) defaultValues.stream().filter(d -> d.getCode() != null).forEach(d -> result.putIfAbsent(d.getCode(), d));
+        }
+        return result;
+    }
+
     public LovGetListDto getLovItemByCodeFast(String code, String lovName) {
         log.info("Fetching LOV item (fast) - code: {}, lovName: {}, groupPoid: {}, companyPoid: {}, userPoid: {}",
                 code, lovName, UserContext.getGroupPoid(), UserContext.getCompanyPoid(), UserContext.getUserPoid());
