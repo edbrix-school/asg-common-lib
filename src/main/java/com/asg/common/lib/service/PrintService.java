@@ -160,7 +160,7 @@ public class PrintService {
     private String getDivisionPoid(Long companyPoid) {
         if (companyPoid == null) return "581";
         try (Connection conn = dataSource.getConnection()) {
-            var stmt = conn.prepareStatement("SELECT DIV_POID FROM GLOBAL_COMPANY_MASTER_DIV_DTL WHERE COMPANY_POID = ? AND ROWNUM = 1");
+            var stmt = conn.prepareStatement("SELECT DIV_POID FROM GLOBAL_COMPANY_MASTER_DIV_DTL WHERE COMPANY_POID = ? FETCH FIRST 1 ROW ONLY;");
             stmt.setLong(1, companyPoid);
             var rs = stmt.executeQuery();
             if (rs.next()) {
