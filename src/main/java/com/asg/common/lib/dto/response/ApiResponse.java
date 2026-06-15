@@ -6,9 +6,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ApiResponse {
+
+    public static ResponseEntity<?> successWithWarnings(String message, Object data,
+                                                        List<String> warnings, List<String> infoMessages) {
+        boolean hasWarnings = warnings != null && !warnings.isEmpty();
+        boolean hasInfo = infoMessages != null && !infoMessages.isEmpty();
+        if (!hasWarnings && !hasInfo) {
+            return success(message, data);
+        }
+        Map<String, Object> body = new LinkedHashMap<>(Map.of(
+                "statusCode", HttpStatus.OK.value(),
+                "success", true,
+                "message", message
+        ));
+        if (hasWarnings) body.put("warnings", warnings);
+        if (hasInfo) body.put("info", infoMessages);
+        body.put("result", data != null ? Map.of("data", data) : "");
+        return ResponseEntity.ok(body);
+    }
 
     //Common method used to respond with success message in all controllers
     public static ResponseEntity<?> success(String message, Object data) {
