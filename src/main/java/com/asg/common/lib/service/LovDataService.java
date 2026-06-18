@@ -38,6 +38,11 @@ public class LovDataService {
             "OPS_PC_FDA_REF"
     );
 
+    private static final List<String> ENABLE_PAGINATION = Arrays.asList(
+            "CUSTOMER_SUPPLIER_MASTER",
+            "OPS_PC_PDA_REF"
+    );
+
 
     // ================================
     // Generic LOV method
@@ -284,7 +289,8 @@ public class LovDataService {
 
 
                         List<LovGetListDto> paginatedList;
-                        if (pageSize <= 0 || ( SKIP_FILTER_LOV_NAMES.contains(lovName) && !"CUSTOMER_SUPPLIER_MASTER".equalsIgnoreCase(lovName) )) {
+                        boolean paginationEnabled = ENABLE_PAGINATION.stream().anyMatch(name -> name.equalsIgnoreCase(lovName));
+                        if (pageSize <= 0 || ( SKIP_FILTER_LOV_NAMES.contains(lovName) && !paginationEnabled )) {
                             paginatedList = result; // return all
                         } else {
                             int fromIndex = Math.max(pageNumber * pageSize, 0);
