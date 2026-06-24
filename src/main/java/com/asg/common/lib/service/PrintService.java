@@ -42,6 +42,9 @@ public class PrintService {
     public Map<String, Object> buildBaseParams(Long transactionPoid, String documentId) throws JRException {
         Map<String, Object> p = new HashMap<>();
         p.put("DOC_KEY_POID", transactionPoid);
+        if(null != transactionPoid && null != documentId && !documentId.isBlank()) {
+            p.put("REPORT_TITLE", documentId + "_" + transactionPoid);
+        }
         p.put("DOC_ID", documentId);
         p.put("SUBREPORT_DIR", "");
         p.put("DATE_TIME", new java.util.Date());
