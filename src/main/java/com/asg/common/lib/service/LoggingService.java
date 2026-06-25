@@ -91,13 +91,13 @@ public class LoggingService {
 
         if (LogDetailsEnum.VIEWED.equals(logType) && BooleanUtils.isFalse(UserContext.isLogEnabled()))
             return;
-        
+
         // Build meaningful log text
         String logDetails = logType.getDescription() + " - DOC:" + docId + " KEY:" + docKeyPoid;
         if (logType.equals(LogDetailsEnum.VIEWED) || logType.equals(LogDetailsEnum.MODIFIED)) {
             logDetails = logType.getDescription();
         }
-        
+
 
         createLogSummaryEntry(docId, docKeyPoid ,logDetails);
     }
@@ -240,18 +240,19 @@ public class LoggingService {
 
     public <T> void createLogBatch(List<LogRequestDto<T>> logRequests) {
         for (LogRequestDto<T> request : logRequests) {
-            createLog(request.getOldObj(), request.getNewObj(), request.getClazz(), 
-                     request.getDocumentId(), request.getDocKeyPoid(), request.getLogDetail());
+            createLog(request.getOldObj(), request.getNewObj(), request.getClazz(),
+                    request.getDocumentId(), request.getDocKeyPoid(), request.getLogDetail());
         }
     }
 
     public <T> String getEntityDataString(T entity) {
         if (entity == null) return "";
-        
+
         StringBuilder rowData = new StringBuilder();
         java.lang.reflect.Field[] fields = entity.getClass().getDeclaredFields();
-        
+
         for (java.lang.reflect.Field field : fields) {
+            if (field.isAnnotationPresent(com.asg.common.lib.annotation.AuditIgnore.class)) continue;
             field.setAccessible(true);
             try {
                 Object value = field.get(entity);
@@ -262,7 +263,7 @@ public class LoggingService {
                 log.warn("Unable to access field: {}", field.getName());
             }
         }
-        
+
         return rowData.toString();
     }
 
