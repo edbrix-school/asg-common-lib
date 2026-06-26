@@ -29,4 +29,5 @@ public class BillwiseBreakupRequestDto {
     private BigDecimal crAmt;
     private String billRemarks;
     private Long loginUserPoid;
+    private BigDecimal billOriginalAmount;
 }
