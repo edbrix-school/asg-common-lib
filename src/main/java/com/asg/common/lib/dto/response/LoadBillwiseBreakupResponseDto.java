@@ -21,4 +21,5 @@ public class LoadBillwiseBreakupResponseDto {
     private BigDecimal drAmt;
     private BigDecimal crAmt;
     private String billRemarks;
+    private BigDecimal billOriginalAmount;
 }
