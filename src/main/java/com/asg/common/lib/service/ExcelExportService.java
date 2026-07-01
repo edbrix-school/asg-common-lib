@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -28,6 +29,13 @@ public class ExcelExportService {
     private final ExcelExportRepository repository;
     private static final String FILE_SEPARATOR = File.separator;
     private String exportCurrency = "BHD";
+
+    @Value("${db.connection:oracle}")
+    private String dbConnection;
+
+    private boolean isPostgres() {
+        return "postgres".equalsIgnoreCase(dbConnection);
+    }
 
     public ExcelFileData generateExcel(String docId, String docKeyPoid, Map<String, Object> parameters, String outputFileName) {
         String parametersString = convertParametersToString(parameters);
@@ -341,13 +349,17 @@ public class ExcelExportService {
     private static final DateTimeFormatter ISO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private String formatParamValue(Object value) {
-        if (value instanceof LocalDate ld) return toOracleDate(ld);
-        if (value instanceof LocalDateTime ldt) return toOracleDate(ldt.toLocalDate());
-        if (value instanceof java.sql.Date sd) return toOracleDate(sd.toLocalDate());
-        if (value instanceof Date d) return toOracleDate(new java.sql.Date(d.getTime()).toLocalDate());
+        if (value instanceof LocalDate ld) return isPostgres() ? ld.format(ORACLE_DATE_FORMAT) : toOracleDate(ld);
+        if (value instanceof LocalDateTime ldt) return isPostgres() ? ldt.toLocalDate().format(ORACLE_DATE_FORMAT) : toOracleDate(ldt.toLocalDate());
+        if (value instanceof java.sql.Date sd) return isPostgres() ? sd.toLocalDate().format(ORACLE_DATE_FORMAT) : toOracleDate(sd.toLocalDate());
+        if (value instanceof Date d) {
+            LocalDate ld = new java.sql.Date(d.getTime()).toLocalDate();
+            return isPostgres() ? ld.format(ORACLE_DATE_FORMAT) : toOracleDate(ld);
+        }
         if (value instanceof String s) {
             try {
-                return toOracleDate(LocalDate.parse(s, ISO_DATE_FORMAT));
+                LocalDate ld = LocalDate.parse(s, ISO_DATE_FORMAT);
+                return isPostgres() ? ld.format(ORACLE_DATE_FORMAT) : toOracleDate(ld);
             } catch (Exception ignored) {}
         }
         return value.toString();
@@ -363,8 +375,10 @@ public class ExcelExportService {
         }
         Map<String, Object> modifiedParams = new HashMap<>(parameters);
 
-        handleCompanyPoidParam(modifiedParams, "COMPANY_POID");
-        handleCompanyPoidParam(modifiedParams, "P_COMPANY_POID");
+        if (!isPostgres()) {
+            handleCompanyPoidParam(modifiedParams, "COMPANY_POID");
+            handleCompanyPoidParam(modifiedParams, "P_COMPANY_POID");
+        }
 
         StringBuilder result = new StringBuilder();
         for (Map.Entry<String, Object> entry : modifiedParams.entrySet()) {
