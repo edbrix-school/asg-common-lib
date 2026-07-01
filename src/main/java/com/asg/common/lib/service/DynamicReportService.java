@@ -5,6 +5,7 @@ import com.asg.common.lib.repository.DynamicReportRepository;
 import com.asg.common.lib.security.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,13 @@ public class DynamicReportService {
     private final ExcelExportService excelExportService;
     private final DynamicReportRepository dynamicReportRepository;
 
+    @Value("${db.connection:oracle}")
+    private String dbConnection;
+
+    private boolean isPostgres() {
+        return "postgres".equalsIgnoreCase(dbConnection);
+    }
+
     public ExcelFileData exportToExcel(String docId, Map<String, Object> uiFilters, String rptName) {
         try {
             List<Map<String, Object>> dbFilters  = populateReportFilters(docId);
@@ -37,39 +45,75 @@ public class DynamicReportService {
     }
 
     public List<Map<String, Object>> populateReportFilters(String docId) {
-        return jdbcTemplate.execute((Connection conn) -> {
+        return jdbcTemplate.execute((Connection conn) ->
+                isPostgres() ? populateReportFiltersPostgres(conn, docId)
+                             : populateReportFiltersOracle(conn, docId)
+        );
+    }
+
+    private List<Map<String, Object>> populateReportFiltersOracle(Connection conn, String docId) throws SQLException {
+        List<Map<String, Object>> reportFilter = new ArrayList<>();
+        try (CallableStatement stmt = conn.prepareCall(
+                "BEGIN ? := FUNC_DYNAMIC_RPT_FILTERS(?,?); END;")) {
+            stmt.registerOutParameter(1, Types.REF_CURSOR);
+            stmt.setLong(2, getGroupPoid());
+            stmt.setString(3, docId);
+            stmt.execute();
+            try (ResultSet rs = (ResultSet) stmt.getObject(1)) {
+                mapFiltersFromResultSet(rs, reportFilter);
+            }
+        }
+        return reportFilter;
+    }
+
+    private List<Map<String, Object>> populateReportFiltersPostgres(Connection conn, String docId) throws SQLException {
+        // Postgres cursors only live within their transaction — disable autocommit
+        // so the cursor opened inside the function stays alive until we fetch from it.
+        boolean prevAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try {
             List<Map<String, Object>> reportFilter = new ArrayList<>();
             try (CallableStatement stmt = conn.prepareCall(
-                    "BEGIN ? := FUNC_DYNAMIC_RPT_FILTERS(?,?); END;")) {
-                stmt.registerOutParameter(1, Types.REF_CURSOR);
+                    "{ ? = call func_dynamic_rpt_filters(?,?) }")) {
+                stmt.registerOutParameter(1, Types.OTHER);
                 stmt.setLong(2, getGroupPoid());
                 stmt.setString(3, docId);
                 stmt.execute();
                 try (ResultSet rs = (ResultSet) stmt.getObject(1)) {
-                    int detRowId = 0;
-                    while (rs.next()) {
-                        detRowId++;
-                        Map<String, Object> filterRowMap = new HashMap<>();
-                        filterRowMap.put("DetRowId", detRowId);
-                        filterRowMap.put("FILTER_NAME", rs.getString("FILTER_NAME"));
-                        filterRowMap.put("SQL_COLUMN_NAME", rs.getString("SQL_COLUMN_NAME"));
-                        filterRowMap.put("FILTER_TYPE", rs.getString("FILTER_TYPE"));
-                        filterRowMap.put("DEFAULT_VALUE", getDefaultValue1Parsed(rs.getString("SQL_COLUMN_NAME"), rs.getString("DEFAULT_VALUE")));
-                        filterRowMap.put("DEFAULT_VALUE2", getDefaultValue2Parsed(rs.getString("SQL_COLUMN_NAME"), rs.getString("DEFAULT_VALUE")));
-                        filterRowMap.put("MANDATATORY", rs.getString("MANDATATORY"));
-                        filterRowMap.put("PANEL", rs.getString("PANEL"));
-                        filterRowMap.put("LOV_NAME", rs.getString("LOV_NAME"));
-                        filterRowMap.put("LOV_RETURN_TYPE", rs.getString("LOV_RETURN_TYPE"));
-                        filterRowMap.put("ADD_TO_WHERE", rs.getString("ADD_TO_WHERE"));
-                        filterRowMap.put("REFRESH_AFTER_CHANGE", rs.getString("REFRESH_AFTER_CHANGE"));
-                        filterRowMap.put("CLEAR_AFTER_CHANGE", rs.getString("CLEAR_AFTER_CHANGE"));
-                        filterRowMap.put("CLEAR_FILTER_AFTER_REFRESH", rs.getString("CLEAR_FILTER_AFTER_REFRESH"));
-                        reportFilter.add(filterRowMap);
-                    }
+                    mapFiltersFromResultSet(rs, reportFilter);
                 }
             }
+            conn.commit();
             return reportFilter;
-        });
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(prevAutoCommit);
+        }
+    }
+
+    private void mapFiltersFromResultSet(ResultSet rs, List<Map<String, Object>> reportFilter) throws SQLException {
+        int detRowId = 0;
+        while (rs.next()) {
+            detRowId++;
+            Map<String, Object> filterRowMap = new HashMap<>();
+            filterRowMap.put("DetRowId", detRowId);
+            filterRowMap.put("FILTER_NAME", rs.getString("FILTER_NAME"));
+            filterRowMap.put("SQL_COLUMN_NAME", rs.getString("SQL_COLUMN_NAME"));
+            filterRowMap.put("FILTER_TYPE", rs.getString("FILTER_TYPE"));
+            filterRowMap.put("DEFAULT_VALUE", getDefaultValue1Parsed(rs.getString("SQL_COLUMN_NAME"), rs.getString("DEFAULT_VALUE")));
+            filterRowMap.put("DEFAULT_VALUE2", getDefaultValue2Parsed(rs.getString("SQL_COLUMN_NAME"), rs.getString("DEFAULT_VALUE")));
+            filterRowMap.put("MANDATATORY", rs.getString("MANDATATORY"));
+            filterRowMap.put("PANEL", rs.getString("PANEL"));
+            filterRowMap.put("LOV_NAME", rs.getString("LOV_NAME"));
+            filterRowMap.put("LOV_RETURN_TYPE", rs.getString("LOV_RETURN_TYPE"));
+            filterRowMap.put("ADD_TO_WHERE", rs.getString("ADD_TO_WHERE"));
+            filterRowMap.put("REFRESH_AFTER_CHANGE", rs.getString("REFRESH_AFTER_CHANGE"));
+            filterRowMap.put("CLEAR_AFTER_CHANGE", rs.getString("CLEAR_AFTER_CHANGE"));
+            filterRowMap.put("CLEAR_FILTER_AFTER_REFRESH", rs.getString("CLEAR_FILTER_AFTER_REFRESH"));
+            reportFilter.add(filterRowMap);
+        }
     }
 
     public Map<String, Object> mergeFinalFilters(Map<String, Object> uiFilters, List<Map<String, Object>> dbFilters) {
