@@ -34,12 +34,18 @@ public class DocumentDeleteService {
     @Autowired
     private DocumentSearchService documentSearchService;
 
-    private Date transactionPeriodStart;
-    private Date transactionPeriodEnd;
-    private Date financialPeriodStart;
-    private Date financialPeriodEnd;
-    private Date stockPeriodStart;
-    private Date stockPeriodEnd;
+    private static final String DOC_TYPE_TRANSACTIONS = "Transactions";
+
+    /**
+     * Raised for a delete outside the transaction period. The gateway's
+     * FinancialDateValidationInterceptor uses the same wording for EDIT —
+     * keep the two in sync.
+     */
+    private static final String TRANSACTION_PERIOD_MESSAGE =
+            "Changes allowed only within current Transaction Period";
+
+    /** Inclusive period bounds. */
+    private record DateRange(Date start, Date end) {}
 
     public String deleteDocument(Long docKeyPoid, String tableName, String poidColumnName,
                                  DeleteReasonDto deleteReason, LocalDate transactionDate) {
@@ -68,43 +74,39 @@ public class DocumentDeleteService {
 
         String docType = document.getDocType();
         DocumentSearchService.DocumentInfo info = null;
-        
-        if ("Transactions".equalsIgnoreCase(docType)) {
+
+        if (DOC_TYPE_TRANSACTIONS.equalsIgnoreCase(docType)) {
             info = documentSearchService.loadDocumentInfo(docId);
         }
-        
-        boolean isGLTransaction = info != null && info.isGlDocument() && "Transactions".equals(docType);
-        boolean isStockDocument = info != null && info.isInventoryDocument() && "Transactions".equals(docType);
 
-        if (isGLTransaction) {
-            transactionPeriodStart = info.getTransPeriodStart();
-            transactionPeriodEnd = info.getTransPeriodEnd();
-            loadFinancialPeriodFromCompanyMaster(companyPoid);
-        }
-        
-        if (isStockDocument) {
-            stockPeriodStart = info.getStockPeriodStart();
-            stockPeriodEnd = info.getStockPeriodEnd();
-        }
+        boolean isTransaction   = info != null;
+        boolean isGLTransaction = isTransaction && info.isGlDocument();
+        boolean isStockDocument = isTransaction && info.isInventoryDocument();
 
         boolean hasEditPermission = grantEditPermissionGetStatus(docKeyPoid, docId);
-        
+
         Date docDate = transactionDate != null ? Date.valueOf(transactionDate) : null;
-        
-        if (isGLTransaction && !isThisDateWithinValidTransactionPeriod(docDate)) {
-            if (!hasEditPermission) {
-                throw new ValidationException("This Document is not within the transaction period");
+
+        // Transaction period — every Transactions document, GL or not. Mirrors the
+        // gateway's EDIT check; DELETE is validated here because delete endpoints
+        // carry no body, so the date can only come from the stored record.
+        if (isTransaction
+                && !isThisDateWithinValidTransactionPeriod(docDate, info.getTransPeriodStart(), info.getTransPeriodEnd())
+                && !hasEditPermission) {
+            throw new ValidationException(TRANSACTION_PERIOD_MESSAGE);
+        }
+
+        if (isGLTransaction) {
+            DateRange financialPeriod = loadFinancialPeriodFromCompanyMaster(companyPoid);
+            if (!isThisDateWithinValidFinancialPeriod(docDate, financialPeriod.start(), financialPeriod.end())) {
+                throw new ValidationException("This Document is not within the financial period");
             }
         }
-        
-        if (isGLTransaction && !isThisDateWithinValidFinancialPeriod(docDate)) {
-            throw new ValidationException("This Document is not within the financial period");
-        }
-        
-        if (isStockDocument && !isThisDateWithinValidStockPeriod(docDate)) {
-            if (!hasEditPermission) {
-                throw new ValidationException("This Document is not within the stock period");
-            }
+
+        if (isStockDocument
+                && !isThisDateWithinValidStockPeriod(docDate, info.getStockPeriodStart(), info.getStockPeriodEnd())
+                && !hasEditPermission) {
+            throw new ValidationException("This Document is not within the stock period");
         }
 
         String sql = "{CALL PROC_GLOB_DOC_DELETE(?,?,?,?,?,?,?,?,?,?,?)}";
@@ -158,56 +160,55 @@ public class DocumentDeleteService {
 
 
 
-    public boolean isThisDateWithinValidTransactionPeriod(Date dateField) {
+    public boolean isThisDateWithinValidTransactionPeriod(Date dateField, Date periodStart, Date periodEnd) {
         if (dateField == null) {
             return false;
         }
 
-        if (transactionPeriodStart == null || transactionPeriodEnd == null) {
+        if (periodStart == null || periodEnd == null) {
             throw new ValidationException("Transaction period is invalid for this company");
         }
 
-        return !dateField.before(transactionPeriodStart) && !dateField.after(transactionPeriodEnd);
+        return !dateField.before(periodStart) && !dateField.after(periodEnd);
     }
 
-    public boolean isThisDateWithinValidFinancialPeriod(Date dateField) {
+    public boolean isThisDateWithinValidFinancialPeriod(Date dateField, Date periodStart, Date periodEnd) {
         if (dateField == null) {
             return false;
         }
 
-        if (financialPeriodStart == null || financialPeriodEnd == null) {
+        if (periodStart == null || periodEnd == null) {
             throw new ValidationException("Financial period is invalid for this company (some null values)");
         }
 
-        if (financialPeriodStart.after(financialPeriodEnd)) {
+        if (periodStart.after(periodEnd)) {
             throw new ValidationException("Financial period is invalid for this company (start date is after end date)");
         }
 
-        return !dateField.before(financialPeriodStart) && !dateField.after(financialPeriodEnd);
+        return !dateField.before(periodStart) && !dateField.after(periodEnd);
     }
 
-    public boolean isThisDateWithinValidStockPeriod(Date dateField) {
+    public boolean isThisDateWithinValidStockPeriod(Date dateField, Date periodStart, Date periodEnd) {
         if (dateField == null) {
             return false;
         }
 
-        if (stockPeriodStart == null || stockPeriodEnd == null) {
+        if (periodStart == null || periodEnd == null) {
             throw new ValidationException("Stock period is invalid for this company (some null values)");
         }
 
-        return !dateField.before(stockPeriodStart) && !dateField.after(stockPeriodEnd);
+        return !dateField.before(periodStart) && !dateField.after(periodEnd);
     }
 
-    private void loadFinancialPeriodFromCompanyMaster(Long companyPoid) {
+    private DateRange loadFinancialPeriodFromCompanyMaster(Long companyPoid) {
         String sql = "SELECT FINANCIAL_PERIOD_START, FINANCIAL_PERION_END FROM GLOBAL_COMPANY_MASTER WHERE COMPANY_POID = ?";
-        
-        jdbcTemplate.query(sql, ps -> ps.setLong(1, companyPoid), rs -> {
-            if (rs.next()) {
-                financialPeriodStart = rs.getDate("FINANCIAL_PERIOD_START");
-                financialPeriodEnd = rs.getDate("FINANCIAL_PERION_END");
-            }
-            return null;
-        });
+
+        DateRange range = jdbcTemplate.query(sql, ps -> ps.setLong(1, companyPoid), rs ->
+                rs.next()
+                        ? new DateRange(rs.getDate("FINANCIAL_PERIOD_START"), rs.getDate("FINANCIAL_PERION_END"))
+                        : null);
+
+        return range != null ? range : new DateRange(null, null);
     }
 
     public Boolean grantEditPermissionGetStatus(Long documentKeyPoid, String docId) {
