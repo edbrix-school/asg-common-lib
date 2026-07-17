@@ -162,7 +162,7 @@ public class DocumentDeleteService {
 
     public boolean isThisDateWithinValidTransactionPeriod(Date dateField, Date periodStart, Date periodEnd) {
         if (dateField == null) {
-            return false;
+            return true;
         }
 
         if (periodStart == null || periodEnd == null) {
