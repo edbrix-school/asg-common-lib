@@ -230,7 +230,7 @@ public class ExcelExportService {
                 font.setBold(true);
                 style.setFont(font);
                 break;
-            case CURRENCY_FORMAT:
+            case CURRENCY_FORMAT, NUMBER_FORMAT:
                 style.setAlignment(HorizontalAlignment.RIGHT);
                 style.setDataFormat(workbook.createDataFormat().getFormat(
                     exportCurrency.equalsIgnoreCase("BHD") ? "0.000" : "0.00"));
@@ -242,9 +242,6 @@ public class ExcelExportService {
                 style.setAlignment(HorizontalAlignment.RIGHT);
                 style.setDataFormat(workbook.createDataFormat().getFormat(
                     exportCurrency.equalsIgnoreCase("BHD") ? "0.000" : "0.00"));
-                break;
-            case NUMBER_FORMAT:
-                style.setAlignment(HorizontalAlignment.RIGHT);
                 break;
             case DATE_FORMAT:
                 style.setDataFormat(workbook.createDataFormat().getFormat("dd-MMM-yyyy"));
