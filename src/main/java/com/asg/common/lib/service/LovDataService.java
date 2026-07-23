@@ -36,13 +36,15 @@ public class LovDataService {
             "CUSTOMER_SUPPLIER_MASTER",
             "OPS_PC_PDA_REF",
             "OPS_PC_FDA_REF",
-            "ADVANCE_PETTY_CASH_PENDING_V2"
+            "ADVANCE_PETTY_CASH_PENDING_V2",
+            "LINE_PIC_USER"
     );
 
     private static final List<String> ENABLE_PAGINATION = Arrays.asList(
             "CUSTOMER_SUPPLIER_MASTER",
             "OPS_PC_PDA_REF",
-            "ADVANCE_PETTY_CASH_PENDING_V2"
+            "ADVANCE_PETTY_CASH_PENDING_V2",
+            "LINE_PIC_USER"
     );
 
 
