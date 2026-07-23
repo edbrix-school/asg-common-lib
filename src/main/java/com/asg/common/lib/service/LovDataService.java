@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class LovDataService {https://github.com/edbrix-school/asg-common-lib/pull/149
+public class LovDataService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
