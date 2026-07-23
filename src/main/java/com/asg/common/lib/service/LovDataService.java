@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class LovDataService {
+public class LovDataService {https://github.com/edbrix-school/asg-common-lib/pull/149
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -37,13 +37,16 @@ public class LovDataService {
             "OPS_PC_PDA_REF",
             "OPS_PC_FDA_REF",
             "ADVANCE_PETTY_CASH_PENDING_V2",
+            "LINE_PIC_USER",
             "IMPORT_RECEIPT_CUSTOMER_PRINT"
     );
 
     private static final List<String> ENABLE_PAGINATION = Arrays.asList(
             "CUSTOMER_SUPPLIER_MASTER",
             "OPS_PC_PDA_REF",
-            "ADVANCE_PETTY_CASH_PENDING_V2"
+            "ADVANCE_PETTY_CASH_PENDING_V2",
+            "LINE_PIC_USER",
+            "IMPORT_RECEIPT_CUSTOMER_PRINT"
     );
 
 
