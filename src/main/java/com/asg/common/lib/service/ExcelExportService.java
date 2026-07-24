@@ -195,10 +195,6 @@ public class ExcelExportService {
         if (colConfig == null) return;
 
         int rowNum = colConfig.getRowRef() - 1;
-        if (lastRowNum != null && lastRowNum >= rowNum) {
-            rowNum = rowNum + colConfig.getRowRef();
-            if (lastRowNum >= rowNum) rowNum = rowNum + colConfig.getRowRef();
-        }
 
         Row row = getOrCreateRow(sheet, rowNum);
         int colNum = colConfig.getColRef() - 1;
