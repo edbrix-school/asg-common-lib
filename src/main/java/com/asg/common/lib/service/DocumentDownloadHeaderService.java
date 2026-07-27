@@ -74,12 +74,9 @@ public class DocumentDownloadHeaderService {
     public String buildFileName(Class<?> entityClass, String keyColumn, Long transactionPoid, String filePrefix,
                                 String extension) {
         String token = resolveFileToken(entityClass, keyColumn, transactionPoid);
-        String prefix = sanitizeToken(filePrefix);
+        String prefix = capitalizeSegments(
+                sanitizeToken(StringUtils.defaultIfBlank(filePrefix, DEFAULT_PREFIX)));
         String ext = normalizeExtension(extension);
-
-        if (StringUtils.isBlank(prefix)) {
-            prefix = DEFAULT_PREFIX;
-        }
 
         return prefix + "-" + token + ext;
     }
@@ -184,6 +181,28 @@ public class DocumentDownloadHeaderService {
 
     private boolean isValidIdentifier(String value) {
         return StringUtils.isNotBlank(value) && SQL_IDENTIFIER.matcher(value).matches();
+    }
+
+    /**
+     * Upper-cases the first letter of every hyphen-separated segment, so callers passing
+     * {@code "journal-voucher"} and {@code "Journal-voucher"} both yield {@code "Journal-Voucher"}.
+     * Applied only to the caller-supplied prefix; the {@code DOC_REF} token is business data and is
+     * emitted verbatim.
+     */
+    private String capitalizeSegments(String value) {
+        String[] segments = value.split("-", -1);
+        StringBuilder sb = new StringBuilder(value.length());
+        for (int i = 0; i < segments.length; i++) {
+            if (i > 0) {
+                sb.append('-');
+            }
+            String segment = segments[i];
+            if (segment.isEmpty()) {
+                continue;
+            }
+            sb.append(Character.toUpperCase(segment.charAt(0))).append(segment.substring(1));
+        }
+        return sb.toString();
     }
 
     private String sanitizeToken(String value) {
