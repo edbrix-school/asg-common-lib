@@ -359,7 +359,7 @@ public class ExcelExportService {
     }
 
     private String toOracleDate(LocalDate date) {
-        return "TO_DATE('" + date.format(ORACLE_DATE_FORMAT) + "','DD-MON-YYYY')";
+        return date.format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
     private String convertParametersToString(Map<String, Object> parameters) {
