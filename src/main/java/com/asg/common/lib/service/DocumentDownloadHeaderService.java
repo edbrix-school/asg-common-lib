@@ -67,6 +67,19 @@ public class DocumentDownloadHeaderService {
         return headers;
     }
 
+    /**
+     * Renders the document in the browser rather than downloading it. Only for preview screens; every
+     * other caller should use {@link #buildAttachmentHeaders(Class, Long, String, String)}.
+     */
+    public HttpHeaders buildInlineHeaders(Class<?> entityClass, Long transactionPoid, String filePrefix,
+                                          String extension) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename(buildFileName(entityClass, transactionPoid, filePrefix, extension))
+                .build());
+        return headers;
+    }
+
     public String buildFileName(Class<?> entityClass, Long transactionPoid, String filePrefix, String extension) {
         return buildFileName(entityClass, DEFAULT_KEY_COLUMN, transactionPoid, filePrefix, extension);
     }
