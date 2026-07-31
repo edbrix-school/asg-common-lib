@@ -38,7 +38,8 @@ public class LovDataService {
             "OPS_PC_FDA_REF",
             "ADVANCE_PETTY_CASH_PENDING_V2",
             "LINE_PIC_USER",
-            "IMPORT_RECEIPT_CUSTOMER_PRINT"
+            "IMPORT_RECEIPT_CUSTOMER_PRINT",
+            "FF_INV_CUST_SUP_MASTER"
     );
 
     private static final List<String> ENABLE_PAGINATION = Arrays.asList(
@@ -46,7 +47,8 @@ public class LovDataService {
             "OPS_PC_PDA_REF",
             "ADVANCE_PETTY_CASH_PENDING_V2",
             "LINE_PIC_USER",
-            "IMPORT_RECEIPT_CUSTOMER_PRINT"
+            "IMPORT_RECEIPT_CUSTOMER_PRINT",
+            "FF_INV_CUST_SUP_MASTER"
     );
 
 
