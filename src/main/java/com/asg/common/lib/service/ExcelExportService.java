@@ -174,9 +174,21 @@ public class ExcelExportService {
         Cell cell = getOrCreateCell(row, colNum, cellType);
 
         if (cellType == CellType.NUMERIC) {
-            cell.setCellValue(Double.parseDouble(value.toString()));
+            setNumericValue(cell, value);
             applyCellStyle(sheet, cell, colConfig);
         } else {
+            cell.setCellValue(value.toString());
+        }
+    }
+
+    private void setNumericValue(Cell cell, Object value) {
+        if (value instanceof Number n) {
+            cell.setCellValue(n.doubleValue());
+            return;
+        }
+        try {
+            cell.setCellValue(Double.parseDouble(value.toString().trim()));
+        } catch (NumberFormatException e) {
             cell.setCellValue(value.toString());
         }
     }
@@ -198,8 +210,13 @@ public class ExcelExportService {
 
         Row row = getOrCreateRow(sheet, rowNum);
         int colNum = colConfig.getColRef() - 1;
-        Cell cell = getOrCreateCell(row, colNum, CellType.STRING);
-        cell.setCellValue(value.toString());
+        CellType cellType = getCellType(colConfig.getCellFormatType());
+        Cell cell = getOrCreateCell(row, colNum, cellType);
+        if (cellType == CellType.NUMERIC) {
+            setNumericValue(cell, value);
+        } else {
+            cell.setCellValue(value.toString());
+        }
 
         if (config.getExcelTemplateFile() == null) {
             applyCellStyle(sheet, cell, colConfig);
@@ -228,16 +245,14 @@ public class ExcelExportService {
                 break;
             case CURRENCY_FORMAT, NUMBER_FORMAT:
                 style.setAlignment(HorizontalAlignment.RIGHT);
-                style.setDataFormat(workbook.createDataFormat().getFormat(
-                    exportCurrency.equalsIgnoreCase("BHD") ? "0.000" : "0.00"));
+                style.setDataFormat(workbook.createDataFormat().getFormat(numericFormat()));
                 break;
             case TOTAL_CURRENCY_FORMAT:
                 font.setFontHeightInPoints((short) 13);
                 font.setBold(true);
                 style.setFont(font);
                 style.setAlignment(HorizontalAlignment.RIGHT);
-                style.setDataFormat(workbook.createDataFormat().getFormat(
-                    exportCurrency.equalsIgnoreCase("BHD") ? "0.000" : "0.00"));
+                style.setDataFormat(workbook.createDataFormat().getFormat(numericFormat()));
                 break;
             case DATE_FORMAT:
                 style.setDataFormat(workbook.createDataFormat().getFormat("dd-MMM-yyyy"));
@@ -260,6 +275,10 @@ public class ExcelExportService {
             cell.setCellType(CellType.FORMULA);
             cell.setCellFormula(formula);
         }
+    }
+
+    private String numericFormat() {
+        return exportCurrency.equalsIgnoreCase("BHD") ? "#,##0.000" : "#,##0.00";
     }
 
     private void formatDetailHeader(XSSFSheet sheet, int rowNum, int startCol, int endCol) {
