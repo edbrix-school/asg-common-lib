@@ -183,6 +183,22 @@ public class LoggingService {
         logDetails(oldObj, newObj, clazz, documentId, docKeyPoid, keyIdLabel);
     }
 
+    // Same as logChanges, but embeds a document reference (e.g. DOC_REF) in the summary line
+    // instead of the bare type description, so the summary log reads "Modified DOC-123" not just "Modified".
+    public <T> void logchange(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid,
+                                LogDetailsEnum logType, String docRef, String keyIdLabel) {
+
+        String summary = (docRef == null || docRef.isBlank())
+                ? logType.getDescription()
+                : String.format("%s %s", logType.getDescription(), docRef);
+
+        // 1) summary
+        createLogSummaryEntry(documentId, docKeyPoid, summary);
+
+        // 2) detail diffs
+        logDetails(oldObj, newObj, clazz, documentId, docKeyPoid, keyIdLabel);
+    }
+
     public  <T> void logDetails(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid, String keyIdLabel) {
         // prefix
         String logDetail = String.format("KeyId = %s:%s", keyIdLabel, docKeyPoid);
