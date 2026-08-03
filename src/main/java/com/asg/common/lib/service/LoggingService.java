@@ -13,7 +13,6 @@ import com.asg.common.lib.utility.DateUtil;
 import com.asg.common.lib.utility.DiffUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +21,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -185,8 +183,8 @@ public class LoggingService {
 
     // Same as logChanges, but embeds a document reference (e.g. DOC_REF) in the summary line
     // instead of the bare type description, so the summary log reads "Modified DOC-123" not just "Modified".
-    public <T> void logchange(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid,
-                                LogDetailsEnum logType, String docRef, String keyIdLabel) {
+    public <T> void logchange_v2(T oldObj, T newObj, Class<T> clazz, String documentId, String docKeyPoid,
+                                 LogDetailsEnum logType, String docRef, String keyIdLabel) {
 
         String summary = (docRef == null || docRef.isBlank())
                 ? logType.getDescription()
