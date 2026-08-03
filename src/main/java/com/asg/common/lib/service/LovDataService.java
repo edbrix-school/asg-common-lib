@@ -6,6 +6,7 @@ import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.repository.TimeZoneDataRepository;
 import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.dialect.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.CallableStatementCallback;
@@ -39,7 +40,9 @@ public class LovDataService {
             "ADVANCE_PETTY_CASH_PENDING_V2",
             "LINE_PIC_USER",
             "IMPORT_RECEIPT_CUSTOMER_PRINT",
-            "FF_INV_CUST_SUP_MASTER"
+            "FF_INV_CUST_SUP_MASTER",
+            "EMP_REJOIN_LEAVE_REQUEST",
+            "PJ_CN_REF_NO"
     );
 
     private static final List<String> ENABLE_PAGINATION = Arrays.asList(
@@ -48,7 +51,8 @@ public class LovDataService {
             "ADVANCE_PETTY_CASH_PENDING_V2",
             "LINE_PIC_USER",
             "IMPORT_RECEIPT_CUSTOMER_PRINT",
-            "FF_INV_CUST_SUP_MASTER"
+            "FF_INV_CUST_SUP_MASTER",
+            "PJ_CN_REF_NO"
     );
 
 
@@ -97,6 +101,13 @@ public class LovDataService {
                 log.warn("Failed to URL decode filter", e);
             }
         }
+
+        if ("EMP_REJOIN_LEAVE_REQUEST".equalsIgnoreCase(lovName) && StringUtils.isNotEmpty(processedFilter)
+                && !StringUtils.isNumeric(processedFilter.trim())) {
+            processedFilter = "";
+        }
+
+
 
         final String finalFilter = processedFilter;
 
