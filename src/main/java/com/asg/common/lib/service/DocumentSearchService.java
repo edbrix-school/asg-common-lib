@@ -241,7 +241,7 @@ public class DocumentSearchService {
         // Add COMPANY_POID filter for Transactions document type
         if ("Transactions".equalsIgnoreCase(doc.getDocType()) && fields.contains("COMPANY_POID")) {
             Long companyPoid = UserContext.getCompanyPoid();
-            if (companyPoid != null) {
+            if (companyPoid != null && !Objects.requireNonNull(UserContext.getDocumentId()).equalsIgnoreCase("700-155")) {
                 sql.append(" AND COMPANY_POID = ?");
                 params.add(companyPoid);
             }
