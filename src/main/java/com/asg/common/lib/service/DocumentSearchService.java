@@ -162,7 +162,11 @@ public class DocumentSearchService {
     private String applySorting(String baseSql, Pageable pageable, List<String> columnNames, String whereClause, DocumentEntity doc) {
 
         // Strip ORDER BY from base SQL if Pageable has sorting (remove only inside the first parentheses)
-        String sql = pageable.getSort().isSorted()
+
+        String documentId = UserContext.getDocumentId();
+        boolean keepOrderBy = "350-006".equalsIgnoreCase(documentId);
+
+        String sql = (!keepOrderBy && pageable.getSort().isSorted())
                 ? baseSql.replaceAll("(?i)ORDER\\s+BY[\\s\\S]*?(?=\\))", "")  // remove ORDER BY until the next ')'
                 : baseSql;
 
@@ -237,7 +241,7 @@ public class DocumentSearchService {
         // Add COMPANY_POID filter for Transactions document type
         if ("Transactions".equalsIgnoreCase(doc.getDocType()) && fields.contains("COMPANY_POID")) {
             Long companyPoid = UserContext.getCompanyPoid();
-            if (companyPoid != null) {
+            if (companyPoid != null && !Objects.requireNonNull(UserContext.getDocumentId()).equalsIgnoreCase("700-155")) {
                 sql.append(" AND COMPANY_POID = ?");
                 params.add(companyPoid);
             }
