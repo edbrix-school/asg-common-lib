@@ -3,6 +3,7 @@ package com.asg.common.lib.dto.response;
 import com.asg.common.lib.dto.AddressTypeMapDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -56,6 +57,7 @@ public class AddressMasterResponse {
     @Size(max = 1, message = "Active must be Y or N")
     private String active;
 
+    @Max(value = 99999, message = "Seq No must not exceed 99999")
     private Long seqno;
     
     @NotNull(message = "Country is mandatory")
