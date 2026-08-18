@@ -42,7 +42,8 @@ public class LovDataService {
             "IMPORT_RECEIPT_CUSTOMER_PRINT",
             "FF_INV_CUST_SUP_MASTER",
             "EMP_REJOIN_LEAVE_REQUEST",
-            "PJ_CN_REF_NO"
+            "PJ_CN_REF_NO",
+            "TRACKING_PORT_EVENT"
     );
 
     private static final List<String> ENABLE_PAGINATION = Arrays.asList(
@@ -52,7 +53,8 @@ public class LovDataService {
             "LINE_PIC_USER",
             "IMPORT_RECEIPT_CUSTOMER_PRINT",
             "FF_INV_CUST_SUP_MASTER",
-            "PJ_CN_REF_NO"
+            "PJ_CN_REF_NO",
+            "TRACKING_PORT_EVENT"
     );
 
 
