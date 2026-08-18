@@ -88,15 +88,20 @@ public class TableMetaRepository {
 
         // Wrap if not already wrapped
         String lower = cleaned.toLowerCase();
-        if (lower.startsWith("select * from (")) return cleaned;
+        if (lower.startsWith("select * from (")) {
+            // Oracle never required an alias on this wrapper; Postgres does.
+            // Supply the missing one only when there's nothing already after
+            // the closing paren (an existing alias or trailing clause).
+            return cleaned.endsWith(")") ? cleaned + " tmp" : cleaned;
+        }
 
         return "SELECT * FROM (" + cleaned + ") tmp";
     }
 
 
-    /** Add rownum filter to reduce data being fetched */
+    /** Add a row-limit filter to reduce data being fetched */
     public static String withRownumLimit(String sql) {
-        return sql + " WHERE ROWNUM <= 1";
+        return sql + " LIMIT 1";
     }
 
     /** Execute a COUNT(*) query and return total record count */

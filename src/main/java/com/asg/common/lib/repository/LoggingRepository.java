@@ -26,33 +26,38 @@ public class LoggingRepository {
 
         List<Map<String, Object>> results = new ArrayList<>();
 
-        try (Connection connection = dataSource.getConnection();
-             CallableStatement stmt =
-                     connection.prepareCall("{call PROC_GLOB_LOG_LOADLIST(?, ?, ?, ?, ?, ?)}")) {
+        try (Connection connection = dataSource.getConnection()) {
+            // Postgres refcursors only live within their transaction — disable autocommit
+            connection.setAutoCommit(false);
 
-            // Set all 6 parameters correctly
-            stmt.setLong(1, groupPoid == null ? 0 : groupPoid);        // P_GROUP_POID
-            stmt.setLong(2, companyPoid == null ? 0 : companyPoid);    // P_COMPANY_POID
-            stmt.setString(3, docId);                                  // P_DOC_ID
-            stmt.setLong(4, docKeyPoid);                               // P_DOC_KEY_POID
-            stmt.setString(5, logType);                                // P_LOG_TYPE
-            stmt.registerOutParameter(6, Types.REF_CURSOR);            // OUTDATA
+            try (CallableStatement stmt =
+                         connection.prepareCall("{call PROC_GLOB_LOG_LOADLIST(?, ?, ?, ?, ?, ?)}")) {
 
-            stmt.execute();
+                // Set all 6 parameters correctly
+                stmt.setLong(1, groupPoid == null ? 0 : groupPoid);        // P_GROUP_POID
+                stmt.setLong(2, companyPoid == null ? 0 : companyPoid);    // P_COMPANY_POID
+                stmt.setString(3, docId);                                  // P_DOC_ID
+                stmt.setLong(4, docKeyPoid);                               // P_DOC_KEY_POID
+                stmt.setString(5, logType);                                // P_LOG_TYPE
+                stmt.registerOutParameter(6, Types.REF_CURSOR);            // OUTDATA
 
-            try (ResultSet rs = (ResultSet) stmt.getObject(6)) {
-                while (rs.next()) {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("logDateTime", rs.getTimestamp("LOG_DATETIME"));
-                    row.put("userName", rs.getString("USER_NAME"));
-                    row.put("logUserPoid", rs.getLong("LOG_USER_POID"));
-                    row.put("logDetails", rs.getString("LOG_DETAILS"));
-                    row.put("fieldName", rs.getString("FIELD_NAME"));
-                    row.put("oldValue", rs.getString("OLD_VALUE"));
-                    row.put("newValue", rs.getString("NEW_VALUE"));
-                    results.add(row);
+                stmt.execute();
+
+                try (ResultSet rs = (ResultSet) stmt.getObject(6)) {
+                    while (rs.next()) {
+                        Map<String, Object> row = new HashMap<>();
+                        row.put("logDateTime", rs.getTimestamp("LOG_DATETIME"));
+                        row.put("userName", rs.getString("USER_NAME"));
+                        row.put("logUserPoid", rs.getLong("LOG_USER_POID"));
+                        row.put("logDetails", rs.getString("LOG_DETAILS"));
+                        row.put("fieldName", rs.getString("FIELD_NAME"));
+                        row.put("oldValue", rs.getString("OLD_VALUE"));
+                        row.put("newValue", rs.getString("NEW_VALUE"));
+                        results.add(row);
+                    }
                 }
             }
+            connection.commit();
 
         } catch (SQLException e) {
             throw new RuntimeException("Error calling log procedure: " + e.getMessage(), e);
@@ -80,11 +85,11 @@ public class LoggingRepository {
         params.add(String.valueOf(docKeyPoid));
         
         if (filter.getStartDate() != null) {
-            sql.append(" AND TRUNC(GL.LOG_DATETIME) >= ?");
+            sql.append(" AND GL.LOG_DATETIME::date >= ?");
             params.add(java.sql.Date.valueOf(filter.getStartDate()));
         }
         if (filter.getEndDate() != null) {
-            sql.append(" AND TRUNC(GL.LOG_DATETIME) <= ?");
+            sql.append(" AND GL.LOG_DATETIME::date <= ?");
             params.add(java.sql.Date.valueOf(filter.getEndDate()));
         }
         if (filter.getSearchText() != null && !filter.getSearchText().isEmpty()) {

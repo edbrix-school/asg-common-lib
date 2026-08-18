@@ -7,7 +7,6 @@ import com.asg.common.lib.repository.TimeZoneDataRepository;
 import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.dialect.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.CallableStatementCallback;
 import org.springframework.jdbc.core.CallableStatementCreator;
@@ -115,6 +114,8 @@ public class LovDataService {
 
         return jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
+                    // Postgres refcursors only live within their transaction — disable autocommit
+                    con.setAutoCommit(false);
                     CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
                     cs.setLong(1, groupPoid != null ? groupPoid : 1L);
                     cs.setLong(2, companyPoid != null ? companyPoid : 1L);
@@ -123,10 +124,11 @@ public class LovDataService {
                     // P_LOV_FILTER_FIELD
                     cs.setString(5, filterField != null ? filterField : "");
                     cs.setString(6, finalFilter != null ? finalFilter : "");
-                    cs.registerOutParameter(7, OracleTypes.CURSOR);
+                    cs.registerOutParameter(7, Types.OTHER);
                     return cs;
                 },
                 (CallableStatementCallback<Map<String, Object>>) cs -> {
+                  try {
                     cs.execute();
                     try (ResultSet rs = (ResultSet) cs.getObject(7)) {
                         if (rs == null) {
@@ -222,7 +224,7 @@ public class LovDataService {
                                 fullCs.setString(4, lovName != null ? lovName : "");
                                 fullCs.setString(5, filterField != null ? filterField : "");
                                 fullCs.setString(6, ""); // no filter
-                                fullCs.registerOutParameter(7, OracleTypes.CURSOR);
+                                fullCs.registerOutParameter(7, Types.OTHER);
 
                                 fullCs.execute();
 
@@ -325,6 +327,11 @@ public class LovDataService {
                         response.put("defaultValues", defaultValues);
                         return response;
                     }
+                  } finally {
+                      Connection conn = cs.getConnection();
+                      conn.commit();
+                      conn.setAutoCommit(true);
+                  }
                 }
         );
     }
@@ -347,6 +354,8 @@ public class LovDataService {
 
             return jdbcTemplate.execute(
                     (CallableStatementCreator) con -> {
+                        // Postgres refcursors only live within their transaction — disable autocommit
+                        con.setAutoCommit(false);
                         CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
 
                         // NUMERIC arguments
@@ -360,29 +369,35 @@ public class LovDataService {
                         cs.setString(6, filter != null ? filter : "");            // VARCHAR2
 
                         // OUTPUT CURSOR
-                        cs.registerOutParameter(7, OracleTypes.CURSOR);
+                        cs.registerOutParameter(7, Types.OTHER);
                         return cs;
                     },
                     (CallableStatementCallback<Map<String, Object>>) cs -> {
-                        cs.execute();
-                        ResultSet rs = (ResultSet) cs.getObject(7);
-                        List<LovGetListDto> result = new ArrayList<>();
-                        while (rs.next()) {
-                            LovGetListDto dto = new LovGetListDto();
-                            dto.setPoid(rs.getLong("POID"));
-                            dto.setCode(rs.getString("CODE"));
-                            dto.setDescription(rs.getString("DESCRIPTION"));
-                            dto.setLabel(rs.getString("DESCRIPTION"));
-                            dto.setValue(rs.getLong("POID"));
-                            dto.setSeqNo(0);
-                            result.add(dto);
-                        }
-                        rs.close();
+                        try {
+                            cs.execute();
+                            ResultSet rs = (ResultSet) cs.getObject(7);
+                            List<LovGetListDto> result = new ArrayList<>();
+                            while (rs.next()) {
+                                LovGetListDto dto = new LovGetListDto();
+                                dto.setPoid(rs.getLong("POID"));
+                                dto.setCode(rs.getString("CODE"));
+                                dto.setDescription(rs.getString("DESCRIPTION"));
+                                dto.setLabel(rs.getString("DESCRIPTION"));
+                                dto.setValue(rs.getLong("POID"));
+                                dto.setSeqNo(0);
+                                result.add(dto);
+                            }
+                            rs.close();
 
-                        Map<String, Object> response = new HashMap<>();
-                        response.put("totalRecords", result.size());
-                        response.put("data", result);
-                        return response;
+                            Map<String, Object> response = new HashMap<>();
+                            response.put("totalRecords", result.size());
+                            response.put("data", result);
+                            return response;
+                        } finally {
+                            Connection conn = cs.getConnection();
+                            conn.commit();
+                            conn.setAutoCommit(true);
+                        }
                     }
             );
         } catch (Exception e) {
@@ -465,6 +480,8 @@ public class LovDataService {
     // ================================
     public List<LovGetListDto> getAgeingBreakupTypes(Long groupPoid, Long companyPoid, Long userPoid) {
         return jdbcTemplate.execute((Connection con) -> {
+            // Postgres refcursors only live within their transaction — disable autocommit
+            con.setAutoCommit(false);
             try (CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}")) {
                 cs.setObject(1, groupPoid, Types.NUMERIC);
                 cs.setObject(2, companyPoid, Types.NUMERIC);
@@ -472,7 +489,7 @@ public class LovDataService {
                 cs.setString(4, "GL_AGEING_TYPES");
                 cs.setString(5, null);
                 cs.setString(6, null);
-                cs.registerOutParameter(7, OracleTypes.CURSOR);
+                cs.registerOutParameter(7, Types.OTHER);
 
                 cs.execute();
 
@@ -492,6 +509,9 @@ public class LovDataService {
                     }
                 }
                 return result;
+            } finally {
+                con.commit();
+                con.setAutoCommit(true);
             }
         });
     }

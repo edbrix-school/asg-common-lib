@@ -27,7 +27,7 @@ public class ApprovalService {
             return "ERROR : DocKeyPoid is required for checking the status";
         }
 
-        String sql = "BEGIN ? := FUNC_GLOB_APPROVAL_STATUS(?,?,?,?,?); END;";
+        String sql = "{ ? = call FUNC_GLOB_APPROVAL_STATUS(?,?,?,?,?) }";
 
         try (Connection conn = dataSource.getConnection();
              CallableStatement statement = conn.prepareCall(sql)) {

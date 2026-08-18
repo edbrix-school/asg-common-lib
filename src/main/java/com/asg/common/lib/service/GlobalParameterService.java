@@ -17,7 +17,7 @@ public class GlobalParameterService {
 
     public String getParameterValue(String parameterName, String parameterKeyIdType, String parameterKeyId, String defaultValue) {
         try {
-            String function = "BEGIN ? := RTN_GLOBAL_PARAMETER(?,?,?,?,?); END;";
+            String function = "{ ? = call RTN_GLOBAL_PARAMETER(?,?,?,?,?) }";
 
             return jdbcTemplate.execute(function, (CallableStatementCallback<String>) cs -> {
                 cs.registerOutParameter(1, Types.VARCHAR);
