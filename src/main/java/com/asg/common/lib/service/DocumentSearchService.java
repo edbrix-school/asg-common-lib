@@ -118,7 +118,14 @@ public class DocumentSearchService {
                 ? cleanSql(doc.getListOfRecordsSql())
                 : "SELECT * FROM " + doc.getMainTableName();
 
-        String baseSql = "SELECT * FROM (" + rawBaseSql + ") BASE";
+        // Some stored LIST_OF_RECORDS_SQL values are themselves an Oracle-legal, unaliased
+        // "SELECT * FROM (...)" wrapper (Postgres requires every FROM-subquery to have one).
+        // Wrapping rawBaseSql here a second time only aliases the outer layer we're adding
+        // ("BASE") — it does nothing for an unaliased wrapper already present inside rawBaseSql
+        // itself. Running it through normalizeSql() first (the same alias-patching TableMetaRepository
+        // already applies before column-sniffing this same SQL) closes that gap generically, without
+        // needing to know which docId's stored SQL happens to have the problem.
+        String baseSql = "SELECT * FROM (" + tableMetaRepository.normalizeSql(rawBaseSql) + ") BASE";
 
         List<String> columnNames = getSearchableFieldNames(doc);
 

@@ -70,7 +70,8 @@ public class GroupEntity extends BaseEntity {
     @Column(name = "REPORT_PERIOD_END")
     private LocalDate reportPeriodEnd;
 
-    @Lob
+    // No @Lob: Hibernate 6 maps @Lob byte[] to a Postgres Large Object (oid) instead of bytea,
+    // which is what this column actually is. Plain byte[] maps to bytea directly and correctly.
     @Column(name = "ISO_LOGO")
     private byte[] isoLogo;
 }

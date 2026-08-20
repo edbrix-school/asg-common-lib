@@ -190,7 +190,8 @@ public class Company extends BaseEntity {
     @Schema(hidden = true)  //hides from swagger
     private String stateName;
 
-    @Lob
+    // No @Lob: Hibernate 6 maps @Lob byte[] to a Postgres Large Object (oid) instead of bytea,
+    // which is what this column actually is. Plain byte[] maps to bytea directly and correctly.
     @Column(name = "LOGO_IMAGE")
     @Schema(hidden = true)
     private byte[] logoImage;

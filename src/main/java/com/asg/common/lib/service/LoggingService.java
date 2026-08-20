@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
@@ -236,8 +237,16 @@ public class LoggingService {
 
         // Build meaningful log text
 
+        // PROC_UPDATE_LOG_SUMMARY's P_LOGDATETIME was migrated to Postgres as `date`, not
+        // `timestamp` (Oracle's DATE carries a time component; Postgres's doesn't). Binding a
+        // java.sql.Timestamp via setTimestamp() sends a timestamp-typed argument, and Postgres
+        // only allows an assignment cast from timestamp to date, not an implicit one used during
+        // procedure-argument resolution, so the call fails to resolve at all. Casting explicitly
+        // in the SQL text (?::date) coerces the argument before resolution happens, sidestepping
+        // that restriction — at the cost of the time-of-day being dropped, same as the DB proc
+        // would do regardless of how the call arrives, until its parameter type is corrected.
         try (Connection con = dataSource.getConnection();
-             CallableStatement stmt = con.prepareCall("{call PROC_UPDATE_LOG_SUMMARY(?, ?, ?, ?, ?)}")) {
+             PreparedStatement stmt = con.prepareStatement("CALL PROC_UPDATE_LOG_SUMMARY(?, ?::date, ?, ?, ?)")) {
 
             stmt.setLong(1, userPoid);                                 // P_USER_POID
             stmt.setTimestamp(2, DateUtil.getCurrentDateTimeInUserTimeZoneTimeStamp());      // P_LOGDATETIME

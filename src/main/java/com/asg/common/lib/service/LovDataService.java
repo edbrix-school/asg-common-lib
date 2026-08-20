@@ -8,8 +8,7 @@ import com.asg.common.lib.security.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.CallableStatementCallback;
-import org.springframework.jdbc.core.CallableStatementCreator;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -113,31 +112,23 @@ public class LovDataService {
         final String finalFilter = processedFilter;
 
         return jdbcTemplate.execute(
-                (CallableStatementCreator) con -> {
-                    // Postgres refcursors only live within their transaction — disable autocommit
-                    con.setAutoCommit(false);
-                    CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
-                    cs.setLong(1, groupPoid != null ? groupPoid : 1L);
-                    cs.setLong(2, companyPoid != null ? companyPoid : 1L);
-                    cs.setLong(3, userPoid != null ? userPoid : 0L);
-                    cs.setString(4, lovName != null ? lovName : "");
-                    // P_LOV_FILTER_FIELD
-                    cs.setString(5, filterField != null ? filterField : "");
-                    cs.setString(6, finalFilter != null ? finalFilter : "");
-                    cs.registerOutParameter(7, Types.OTHER);
-                    return cs;
-                },
-                (CallableStatementCallback<Map<String, Object>>) cs -> {
-                  try {
-                    cs.execute();
-                    try (ResultSet rs = (ResultSet) cs.getObject(7)) {
-                        if (rs == null) {
-                            Map<String, Object> response = new HashMap<>();
-                            response.put("totalRecords", 0);
-                            response.put("data", Collections.emptyList());
-                            response.put("warning", "No data returned for lovName: " + lovName);
-                            return response;
-                        }
+                (ConnectionCallback<Map<String, Object>>) con -> {
+                    // PROC_LOV_GETLIST is a Postgres FUNCTION returning TABLE(poid, code, description)
+                    // — not a procedure with an OUT refcursor, despite the "PROC_" name — so it's called
+                    // as a plain SELECT, not CALL. Its 2nd parameter (company) is numeric[], not a
+                    // scalar; a single companyPoid is wrapped as a one-element array to preserve
+                    // today's single-company filtering behavior.
+                    try (PreparedStatement ps = con.prepareStatement(
+                            "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
+                        ps.setLong(1, groupPoid != null ? groupPoid : 1L);
+                        ps.setArray(2, con.createArrayOf("numeric",
+                                new Object[]{companyPoid != null ? companyPoid : 1L}));
+                        ps.setLong(3, userPoid != null ? userPoid : 0L);
+                        ps.setString(4, lovName != null ? lovName : "");
+                        // P_LOV_FILTER_FIELD
+                        ps.setString(5, filterField != null ? filterField : "");
+                        ps.setString(6, finalFilter != null ? finalFilter : "");
+                    try (ResultSet rs = ps.executeQuery()) {
                         List<LovGetListDto> result = new ArrayList<>();
                         boolean includeUsers = "USER_ROLES".equalsIgnoreCase(lovName);
                         while (rs.next()) {
@@ -215,22 +206,24 @@ public class LovDataService {
 
                             log.info("Some default values missing. Calling PROC_LOV_GET_FULL_LIST for lovName: {}", lovName);
 
-                            try (CallableStatement fullCs = cs.getConnection()
-                                    .prepareCall("{call PROC_LOV_GET_FULL_LIST(?, ?, ?, ?, ?, ?, ?)}")) {
+                            // PROC_LOV_GET_FULL_LIST does not exist anywhere in the Postgres catalog
+                            // (confirmed, not just unmigrated under a different signature) — this is a
+                            // genuine gap, not a call-syntax bug like PROC_LOV_GETLIST's was. Degrade
+                            // gracefully rather than fail the whole LOV lookup: keep whatever default
+                            // values were already found on the first page, and skip the rest.
+                            try (PreparedStatement fullPs = con.prepareStatement(
+                                    "SELECT * FROM PROC_LOV_GET_FULL_LIST(?, ?, ?, ?, ?, ?)")) {
 
-                                fullCs.setLong(1, groupPoid != null ? groupPoid : 1L);
-                                fullCs.setLong(2, companyPoid != null ? companyPoid : 1L);
-                                fullCs.setLong(3, userPoid != null ? userPoid : 0L);
-                                fullCs.setString(4, lovName != null ? lovName : "");
-                                fullCs.setString(5, filterField != null ? filterField : "");
-                                fullCs.setString(6, ""); // no filter
-                                fullCs.registerOutParameter(7, Types.OTHER);
+                                fullPs.setLong(1, groupPoid != null ? groupPoid : 1L);
+                                fullPs.setArray(2, con.createArrayOf("numeric",
+                                        new Object[]{companyPoid != null ? companyPoid : 1L}));
+                                fullPs.setLong(3, userPoid != null ? userPoid : 0L);
+                                fullPs.setString(4, lovName != null ? lovName : "");
+                                fullPs.setString(5, filterField != null ? filterField : "");
+                                fullPs.setString(6, ""); // no filter
 
-                                fullCs.execute();
-
-                                try (ResultSet fullRs = (ResultSet) fullCs.getObject(7)) {
-
-                                    while (fullRs != null && fullRs.next()) {
+                                try (ResultSet fullRs = fullPs.executeQuery()) {
+                                    while (fullRs.next()) {
 
                                         Long poid = fullRs.getLong("POID");
                                         String code = fullRs.getString("CODE");
@@ -268,6 +261,8 @@ public class LovDataService {
                                         }
                                     }
                                 }
+                            } catch (SQLException missingProc) {
+                                log.warn("PROC_LOV_GET_FULL_LIST is not available on Postgres yet for lovName: {} — returning default values found on the first page only.", lovName);
                             }
                         }
 
@@ -327,11 +322,7 @@ public class LovDataService {
                         response.put("defaultValues", defaultValues);
                         return response;
                     }
-                  } finally {
-                      Connection conn = cs.getConnection();
-                      conn.commit();
-                      conn.setAutoCommit(true);
-                  }
+                    }
                 }
         );
     }
@@ -353,51 +344,42 @@ public class LovDataService {
         try {
 
             return jdbcTemplate.execute(
-                    (CallableStatementCreator) con -> {
-                        // Postgres refcursors only live within their transaction — disable autocommit
-                        con.setAutoCommit(false);
-                        CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}");
+                    (ConnectionCallback<Map<String, Object>>) con -> {
+                        // See getLovList() above: PROC_LOV_GETLIST is a table-returning FUNCTION,
+                        // called via SELECT, with the company parameter as numeric[].
+                        List<LovGetListDto> result = new ArrayList<>();
+                        try (PreparedStatement ps = con.prepareStatement(
+                                "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
 
-                        // NUMERIC arguments
-                        cs.setLong(1, groupPoid != null ? groupPoid : 1L);       // NUMBER
-                        cs.setLong(2, companyPoid != null ? companyPoid : 1L);   // NUMBER
-                        cs.setLong(3, userPoid != null ? userPoid : 0L);         // NUMBER
+                            // NUMERIC arguments
+                            ps.setLong(1, groupPoid != null ? groupPoid : 1L);       // NUMBER
+                            ps.setArray(2, con.createArrayOf("numeric",
+                                    new Object[]{companyPoid != null ? companyPoid : 1L}));   // NUMBER[]
+                            ps.setLong(3, userPoid != null ? userPoid : 0L);         // NUMBER
 
-                        // STRING arguments
-                        cs.setString(4, "BANK_MASTER");                           // VARCHAR2
-                        cs.setString(5, filterField != null ? filterField : "");   // VARCHAR2 - P_LOV_FILTER_FIELD
-                        cs.setString(6, filter != null ? filter : "");            // VARCHAR2
+                            // STRING arguments
+                            ps.setString(4, "BANK_MASTER");                           // VARCHAR2
+                            ps.setString(5, filterField != null ? filterField : "");   // VARCHAR2 - P_LOV_FILTER_FIELD
+                            ps.setString(6, filter != null ? filter : "");            // VARCHAR2
 
-                        // OUTPUT CURSOR
-                        cs.registerOutParameter(7, Types.OTHER);
-                        return cs;
-                    },
-                    (CallableStatementCallback<Map<String, Object>>) cs -> {
-                        try {
-                            cs.execute();
-                            ResultSet rs = (ResultSet) cs.getObject(7);
-                            List<LovGetListDto> result = new ArrayList<>();
-                            while (rs.next()) {
-                                LovGetListDto dto = new LovGetListDto();
-                                dto.setPoid(rs.getLong("POID"));
-                                dto.setCode(rs.getString("CODE"));
-                                dto.setDescription(rs.getString("DESCRIPTION"));
-                                dto.setLabel(rs.getString("DESCRIPTION"));
-                                dto.setValue(rs.getLong("POID"));
-                                dto.setSeqNo(0);
-                                result.add(dto);
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    LovGetListDto dto = new LovGetListDto();
+                                    dto.setPoid(rs.getLong("POID"));
+                                    dto.setCode(rs.getString("CODE"));
+                                    dto.setDescription(rs.getString("DESCRIPTION"));
+                                    dto.setLabel(rs.getString("DESCRIPTION"));
+                                    dto.setValue(rs.getLong("POID"));
+                                    dto.setSeqNo(0);
+                                    result.add(dto);
+                                }
                             }
-                            rs.close();
-
-                            Map<String, Object> response = new HashMap<>();
-                            response.put("totalRecords", result.size());
-                            response.put("data", result);
-                            return response;
-                        } finally {
-                            Connection conn = cs.getConnection();
-                            conn.commit();
-                            conn.setAutoCommit(true);
                         }
+
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("totalRecords", result.size());
+                        response.put("data", result);
+                        return response;
                     }
             );
         } catch (Exception e) {
@@ -480,22 +462,24 @@ public class LovDataService {
     // ================================
     public List<LovGetListDto> getAgeingBreakupTypes(Long groupPoid, Long companyPoid, Long userPoid) {
         return jdbcTemplate.execute((Connection con) -> {
-            // Postgres refcursors only live within their transaction — disable autocommit
-            con.setAutoCommit(false);
-            try (CallableStatement cs = con.prepareCall("{call PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, ?)}")) {
-                cs.setObject(1, groupPoid, Types.NUMERIC);
-                cs.setObject(2, companyPoid, Types.NUMERIC);
-                cs.setObject(3, userPoid, Types.NUMERIC);
-                cs.setString(4, "GL_AGEING_TYPES");
-                cs.setString(5, null);
-                cs.setString(6, null);
-                cs.registerOutParameter(7, Types.OTHER);
+            // See getLovList() above: PROC_LOV_GETLIST is a table-returning FUNCTION, called via
+            // SELECT, with the company parameter as numeric[].
+            List<LovGetListDto> result = new ArrayList<>();
+            try (PreparedStatement ps = con.prepareStatement(
+                    "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
+                ps.setObject(1, groupPoid, Types.NUMERIC);
+                if (companyPoid != null) {
+                    ps.setArray(2, con.createArrayOf("numeric", new Object[]{companyPoid}));
+                } else {
+                    ps.setNull(2, Types.ARRAY);
+                }
+                ps.setObject(3, userPoid, Types.NUMERIC);
+                ps.setString(4, "GL_AGEING_TYPES");
+                ps.setString(5, null);
+                ps.setString(6, null);
 
-                cs.execute();
-
-                List<LovGetListDto> result = new ArrayList<>();
-                try (ResultSet rs = (ResultSet) cs.getObject(7)) {
-                    while (rs != null && rs.next()) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
                         LovGetListDto dto = new LovGetListDto();
                         dto.setPoid(rs.getLong("POID"));
                         dto.setCode(rs.getString("CODE"));
@@ -508,11 +492,8 @@ public class LovDataService {
                         result.add(dto);
                     }
                 }
-                return result;
-            } finally {
-                con.commit();
-                con.setAutoCommit(true);
             }
+            return result;
         });
     }
 

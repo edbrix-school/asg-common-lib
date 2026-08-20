@@ -48,7 +48,8 @@ public class DocumentEntity extends BaseEntity {
     @Column(name = "DOC_REVISION_DATE")
     private LocalDate docRevisionDate;
 
-    @Lob
+    // No @Lob: Hibernate 6 maps @Lob byte[] to a Postgres Large Object (oid) instead of bytea,
+    // which is what this column actually is. Plain byte[] maps to bytea directly and correctly.
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "DOC_ICON")
     @AuditIgnore

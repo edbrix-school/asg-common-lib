@@ -26,7 +26,8 @@ public class CompanyDivisionEntity extends BaseEntity {
     @Column(name = "REMARKS")
     private String remarks;
 
-    @Lob
+    // No @Lob: Hibernate 6 maps @Lob byte[] to a Postgres Large Object (oid) instead of bytea,
+    // which is what this column actually is. Plain byte[] maps to bytea directly and correctly.
     @Column(name = "COMPANY_DIV_LOGO")
     @Schema(hidden = true)
     private byte[] companyDivLogo;
