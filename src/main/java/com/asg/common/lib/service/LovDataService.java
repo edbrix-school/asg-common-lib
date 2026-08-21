@@ -113,13 +113,19 @@ public class LovDataService {
 
         return jdbcTemplate.execute(
                 (ConnectionCallback<Map<String, Object>>) con -> {
-                    // PROC_LOV_GETLIST is a Postgres FUNCTION returning TABLE(poid, code, description)
-                    // — not a procedure with an OUT refcursor, despite the "PROC_" name — so it's called
-                    // as a plain SELECT, not CALL. Its 2nd parameter (company) is numeric[], not a
-                    // scalar; a single companyPoid is wrapped as a one-element array to preserve
-                    // today's single-company filtering behavior.
+                    // PROC_LOV_GETLIST is a procedure with a trailing OUT refcursor on the Oracle
+                    // side (called via {call PROC_LOV_GETLIST(?,?,?,?,?,?,?)}) — its Postgres migration
+                    // currently only exists as a table-returning FUNCTION in test_payroll, not as a
+                    // procedure in production. Called here as the procedure it's supposed to be;
+                    // pending the DB team migrating the real procedure into production. Cursor is 7th
+                    // of 7 (not first), so it's opened via plain CALL + a separate FETCH, not
+                    // CallableStatement/registerOutParameter (which only binds a REF_CURSOR correctly
+                    // in position 1). Its 2nd parameter (company) is numeric[], not a scalar; a single
+                    // companyPoid is wrapped as a one-element array to preserve today's single-company
+                    // filtering behavior.
+                    String cursorName;
                     try (PreparedStatement ps = con.prepareStatement(
-                            "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
+                            "CALL PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, NULL::refcursor)")) {
                         ps.setLong(1, groupPoid != null ? groupPoid : 1L);
                         ps.setArray(2, con.createArrayOf("numeric",
                                 new Object[]{companyPoid != null ? companyPoid : 1L}));
@@ -128,7 +134,13 @@ public class LovDataService {
                         // P_LOV_FILTER_FIELD
                         ps.setString(5, filterField != null ? filterField : "");
                         ps.setString(6, finalFilter != null ? finalFilter : "");
-                    try (ResultSet rs = ps.executeQuery()) {
+                        try (ResultSet rs = ps.executeQuery()) {
+                            rs.next();
+                            cursorName = rs.getString(1);
+                        }
+                    }
+                    try (Statement fetchStmt = con.createStatement();
+                         ResultSet rs = fetchStmt.executeQuery("FETCH ALL FROM \"" + cursorName + "\"")) {
                         List<LovGetListDto> result = new ArrayList<>();
                         boolean includeUsers = "USER_ROLES".equalsIgnoreCase(lovName);
                         while (rs.next()) {
@@ -208,21 +220,29 @@ public class LovDataService {
 
                             // PROC_LOV_GET_FULL_LIST does not exist anywhere in the Postgres catalog
                             // (confirmed, not just unmigrated under a different signature) — this is a
-                            // genuine gap, not a call-syntax bug like PROC_LOV_GETLIST's was. Degrade
-                            // gracefully rather than fail the whole LOV lookup: keep whatever default
-                            // values were already found on the first page, and skip the rest.
-                            try (PreparedStatement fullPs = con.prepareStatement(
-                                    "SELECT * FROM PROC_LOV_GET_FULL_LIST(?, ?, ?, ?, ?, ?)")) {
-
-                                fullPs.setLong(1, groupPoid != null ? groupPoid : 1L);
-                                fullPs.setArray(2, con.createArrayOf("numeric",
-                                        new Object[]{companyPoid != null ? companyPoid : 1L}));
-                                fullPs.setLong(3, userPoid != null ? userPoid : 0L);
-                                fullPs.setString(4, lovName != null ? lovName : "");
-                                fullPs.setString(5, filterField != null ? filterField : "");
-                                fullPs.setString(6, ""); // no filter
-
-                                try (ResultSet fullRs = fullPs.executeQuery()) {
+                            // genuine gap. Called here as a procedure with a trailing OUT refcursor,
+                            // matching PROC_LOV_GETLIST's sibling shape above, on the assumption it was
+                            // also originally a procedure on the Oracle side. Degrade gracefully rather
+                            // than fail the whole LOV lookup: keep whatever default values were already
+                            // found on the first page, and skip the rest.
+                            try {
+                                String fullCursorName;
+                                try (PreparedStatement fullPs = con.prepareStatement(
+                                        "CALL PROC_LOV_GET_FULL_LIST(?, ?, ?, ?, ?, ?, NULL::refcursor)")) {
+                                    fullPs.setLong(1, groupPoid != null ? groupPoid : 1L);
+                                    fullPs.setArray(2, con.createArrayOf("numeric",
+                                            new Object[]{companyPoid != null ? companyPoid : 1L}));
+                                    fullPs.setLong(3, userPoid != null ? userPoid : 0L);
+                                    fullPs.setString(4, lovName != null ? lovName : "");
+                                    fullPs.setString(5, filterField != null ? filterField : "");
+                                    fullPs.setString(6, ""); // no filter
+                                    try (ResultSet cursorRs = fullPs.executeQuery()) {
+                                        cursorRs.next();
+                                        fullCursorName = cursorRs.getString(1);
+                                    }
+                                }
+                                try (Statement fullFetchStmt = con.createStatement();
+                                     ResultSet fullRs = fullFetchStmt.executeQuery("FETCH ALL FROM \"" + fullCursorName + "\"")) {
                                     while (fullRs.next()) {
 
                                         Long poid = fullRs.getLong("POID");
@@ -322,7 +342,6 @@ public class LovDataService {
                         response.put("defaultValues", defaultValues);
                         return response;
                     }
-                    }
                 }
         );
     }
@@ -345,11 +364,15 @@ public class LovDataService {
 
             return jdbcTemplate.execute(
                     (ConnectionCallback<Map<String, Object>>) con -> {
-                        // See getLovList() above: PROC_LOV_GETLIST is a table-returning FUNCTION,
-                        // called via SELECT, with the company parameter as numeric[].
+                        // See getLovList() above: PROC_LOV_GETLIST is a procedure with a trailing
+                        // OUT refcursor (not first parameter — needs plain CALL + FETCH, not
+                        // CallableStatement/registerOutParameter), pending the DB team migrating the
+                        // real procedure into production.
                         List<LovGetListDto> result = new ArrayList<>();
+
+                        String cursorName;
                         try (PreparedStatement ps = con.prepareStatement(
-                                "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
+                                "CALL PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, NULL::refcursor)")) {
 
                             // NUMERIC arguments
                             ps.setLong(1, groupPoid != null ? groupPoid : 1L);       // NUMBER
@@ -363,16 +386,21 @@ public class LovDataService {
                             ps.setString(6, filter != null ? filter : "");            // VARCHAR2
 
                             try (ResultSet rs = ps.executeQuery()) {
-                                while (rs.next()) {
-                                    LovGetListDto dto = new LovGetListDto();
-                                    dto.setPoid(rs.getLong("POID"));
-                                    dto.setCode(rs.getString("CODE"));
-                                    dto.setDescription(rs.getString("DESCRIPTION"));
-                                    dto.setLabel(rs.getString("DESCRIPTION"));
-                                    dto.setValue(rs.getLong("POID"));
-                                    dto.setSeqNo(0);
-                                    result.add(dto);
-                                }
+                                rs.next();
+                                cursorName = rs.getString(1);
+                            }
+                        }
+                        try (Statement fetchStmt = con.createStatement();
+                             ResultSet rs = fetchStmt.executeQuery("FETCH ALL FROM \"" + cursorName + "\"")) {
+                            while (rs.next()) {
+                                LovGetListDto dto = new LovGetListDto();
+                                dto.setPoid(rs.getLong("POID"));
+                                dto.setCode(rs.getString("CODE"));
+                                dto.setDescription(rs.getString("DESCRIPTION"));
+                                dto.setLabel(rs.getString("DESCRIPTION"));
+                                dto.setValue(rs.getLong("POID"));
+                                dto.setSeqNo(0);
+                                result.add(dto);
                             }
                         }
 
@@ -462,11 +490,13 @@ public class LovDataService {
     // ================================
     public List<LovGetListDto> getAgeingBreakupTypes(Long groupPoid, Long companyPoid, Long userPoid) {
         return jdbcTemplate.execute((Connection con) -> {
-            // See getLovList() above: PROC_LOV_GETLIST is a table-returning FUNCTION, called via
-            // SELECT, with the company parameter as numeric[].
+            // See getLovList() above: PROC_LOV_GETLIST is a procedure with a trailing OUT
+            // refcursor, pending the DB team migrating the real procedure into production.
             List<LovGetListDto> result = new ArrayList<>();
+
+            String cursorName;
             try (PreparedStatement ps = con.prepareStatement(
-                    "SELECT * FROM PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?)")) {
+                    "CALL PROC_LOV_GETLIST(?, ?, ?, ?, ?, ?, NULL::refcursor)")) {
                 ps.setObject(1, groupPoid, Types.NUMERIC);
                 if (companyPoid != null) {
                     ps.setArray(2, con.createArrayOf("numeric", new Object[]{companyPoid}));
@@ -479,18 +509,23 @@ public class LovDataService {
                 ps.setString(6, null);
 
                 try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        LovGetListDto dto = new LovGetListDto();
-                        dto.setPoid(rs.getLong("POID"));
-                        dto.setCode(rs.getString("CODE"));
+                    rs.next();
+                    cursorName = rs.getString(1);
+                }
+            }
+            try (Statement fetchStmt = con.createStatement();
+                 ResultSet rs = fetchStmt.executeQuery("FETCH ALL FROM \"" + cursorName + "\"")) {
+                while (rs.next()) {
+                    LovGetListDto dto = new LovGetListDto();
+                    dto.setPoid(rs.getLong("POID"));
+                    dto.setCode(rs.getString("CODE"));
 
-                        String description = rs.getString("DESCRIPTION");
-                        dto.setLabel(description != null ? description : rs.getString("CODE"));
-                        dto.setValue(0L);
-                        dto.setDescription(description);
-                        dto.setSeqNo(0);
-                        result.add(dto);
-                    }
+                    String description = rs.getString("DESCRIPTION");
+                    dto.setLabel(description != null ? description : rs.getString("CODE"));
+                    dto.setValue(0L);
+                    dto.setDescription(description);
+                    dto.setSeqNo(0);
+                    result.add(dto);
                 }
             }
             return result;

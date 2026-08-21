@@ -26,35 +26,41 @@ public class LoggingRepository {
 
         List<Map<String, Object>> results = new ArrayList<>();
 
+        // pgjdbc's CallableStatement.registerOutParameter() only binds a REF_CURSOR correctly
+        // when it's the first parameter; OUTDATA here is 6th of 6, so it was silently dropped
+        // from the call actually sent to Postgres. Calling as a plain CALL via
+        // PreparedStatement.executeQuery() sidesteps that restriction — Postgres returns the
+        // cursor's name as an ordinary one-row ResultSet, then FETCH ALL reads the real rows.
         try (Connection connection = dataSource.getConnection()) {
-            // Postgres refcursors only live within their transaction — disable autocommit
             connection.setAutoCommit(false);
 
-            try (CallableStatement stmt =
-                         connection.prepareCall("{call PROC_GLOB_LOG_LOADLIST(?, ?, ?, ?, ?, ?)}")) {
+            String cursorName;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "CALL PROC_GLOB_LOG_LOADLIST(?, ?, ?, ?, ?, NULL::refcursor)")) {
+                ps.setLong(1, groupPoid == null ? 0 : groupPoid);        // P_GROUP_POID
+                ps.setLong(2, companyPoid == null ? 0 : companyPoid);    // P_COMPANY_POID
+                ps.setString(3, docId);                                  // P_DOC_ID
+                ps.setLong(4, docKeyPoid);                               // P_DOC_KEY_POID
+                ps.setString(5, logType);                                // P_LOG_TYPE
 
-                // Set all 6 parameters correctly
-                stmt.setLong(1, groupPoid == null ? 0 : groupPoid);        // P_GROUP_POID
-                stmt.setLong(2, companyPoid == null ? 0 : companyPoid);    // P_COMPANY_POID
-                stmt.setString(3, docId);                                  // P_DOC_ID
-                stmt.setLong(4, docKeyPoid);                               // P_DOC_KEY_POID
-                stmt.setString(5, logType);                                // P_LOG_TYPE
-                stmt.registerOutParameter(6, Types.REF_CURSOR);            // OUTDATA
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    cursorName = rs.getString(1);
+                }
+            }
 
-                stmt.execute();
-
-                try (ResultSet rs = (ResultSet) stmt.getObject(6)) {
-                    while (rs.next()) {
-                        Map<String, Object> row = new HashMap<>();
-                        row.put("logDateTime", rs.getTimestamp("LOG_DATETIME"));
-                        row.put("userName", rs.getString("USER_NAME"));
-                        row.put("logUserPoid", rs.getLong("LOG_USER_POID"));
-                        row.put("logDetails", rs.getString("LOG_DETAILS"));
-                        row.put("fieldName", rs.getString("FIELD_NAME"));
-                        row.put("oldValue", rs.getString("OLD_VALUE"));
-                        row.put("newValue", rs.getString("NEW_VALUE"));
-                        results.add(row);
-                    }
+            try (Statement fetchStmt = connection.createStatement();
+                 ResultSet rs = fetchStmt.executeQuery("FETCH ALL FROM \"" + cursorName + "\"")) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("logDateTime", rs.getTimestamp("LOG_DATETIME"));
+                    row.put("userName", rs.getString("USER_NAME"));
+                    row.put("logUserPoid", rs.getLong("LOG_USER_POID"));
+                    row.put("logDetails", rs.getString("LOG_DETAILS"));
+                    row.put("fieldName", rs.getString("FIELD_NAME"));
+                    row.put("oldValue", rs.getString("OLD_VALUE"));
+                    row.put("newValue", rs.getString("NEW_VALUE"));
+                    results.add(row);
                 }
             }
             connection.commit();
