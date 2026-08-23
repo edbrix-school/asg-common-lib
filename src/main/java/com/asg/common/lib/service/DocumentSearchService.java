@@ -75,7 +75,7 @@ public class DocumentSearchService {
         String sql = doc.getListOfRecordsSql();
 
         return (sql != null && !sql.isBlank())
-                ? tableMetaRepository.getColumnsFromSql(sql)
+                ? tableMetaRepository.getColumnsFromSql(cleanSql(sql))
                 : tableMetaRepository.getColumnsFromTable(doc.getMainTableName());
     }
 
@@ -84,7 +84,7 @@ public class DocumentSearchService {
         String sql = doc.getListOfRecordsSql();
 
         return (sql != null && !sql.isBlank())
-                ? tableMetaRepository.getColumnTypesFromSql(sql)
+                ? tableMetaRepository.getColumnTypesFromSql(cleanSql(sql))
                 : tableMetaRepository.getColumnTypesFromTable(doc.getMainTableName());
     }
 
@@ -149,10 +149,11 @@ public class DocumentSearchService {
 
     // Helper to normalize SQL
     private String cleanSql(String sql) {
-        // Remove carriage returns, multiple spaces, and trim
+        // Remove carriage returns, multiple spaces, resolve runtime placeholders, and trim
         return sql.replaceAll("\\r", "")
                 .replaceAll("\\n", " ")
                 .replaceAll("\\s+", " ")
+                .replace("#USER_POID#", String.valueOf(UserContext.getUserPoid()))
                 .trim();
     }
 
@@ -257,6 +258,13 @@ public class DocumentSearchService {
             if (rawValue == null) continue;
 
             if ("GLOBALSEARCH".equals(field)) {
+                if ("800-001".equals(doc.getDocId())) {
+                    // PHOTO_BASE64 is a BLOB-derived base64 column. Base64 output contains a wide
+                    // range of characters, so almost any search term coincidentally matches somewhere
+                    // in the encoded string — causing nearly every employee row to be returned.
+                    // Exclude it from global search to prevent false positives.
+                    fields.remove("PHOTO_BASE64");
+                }
                 handleGlobalSearch(sql, fields, rawValue, params);
             }
             else if (fields.contains(field)) {
