@@ -257,6 +257,13 @@ public class DocumentSearchService {
             if (rawValue == null) continue;
 
             if ("GLOBALSEARCH".equals(field)) {
+                if ("800-001".equals(doc.getDocId())) {
+                    // PHOTO_BASE64 is a BLOB-derived base64 column. Base64 output contains a wide
+                    // range of characters, so almost any search term coincidentally matches somewhere
+                    // in the encoded string — causing nearly every employee row to be returned.
+                    // Exclude it from global search to prevent false positives.
+                    fields.remove("PHOTO_BASE64");
+                }
                 handleGlobalSearch(sql, fields, rawValue, params);
             }
             else if (fields.contains(field)) {
