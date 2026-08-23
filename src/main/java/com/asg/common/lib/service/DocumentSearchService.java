@@ -75,7 +75,7 @@ public class DocumentSearchService {
         String sql = doc.getListOfRecordsSql();
 
         return (sql != null && !sql.isBlank())
-                ? tableMetaRepository.getColumnsFromSql(sql)
+                ? tableMetaRepository.getColumnsFromSql(cleanSql(sql))
                 : tableMetaRepository.getColumnsFromTable(doc.getMainTableName());
     }
 
@@ -84,7 +84,7 @@ public class DocumentSearchService {
         String sql = doc.getListOfRecordsSql();
 
         return (sql != null && !sql.isBlank())
-                ? tableMetaRepository.getColumnTypesFromSql(sql)
+                ? tableMetaRepository.getColumnTypesFromSql(cleanSql(sql))
                 : tableMetaRepository.getColumnTypesFromTable(doc.getMainTableName());
     }
 
@@ -149,10 +149,11 @@ public class DocumentSearchService {
 
     // Helper to normalize SQL
     private String cleanSql(String sql) {
-        // Remove carriage returns, multiple spaces, and trim
+        // Remove carriage returns, multiple spaces, resolve runtime placeholders, and trim
         return sql.replaceAll("\\r", "")
                 .replaceAll("\\n", " ")
                 .replaceAll("\\s+", " ")
+                .replace("#USER_POID#", String.valueOf(UserContext.getUserPoid()))
                 .trim();
     }
 
