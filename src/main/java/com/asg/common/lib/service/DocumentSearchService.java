@@ -107,9 +107,9 @@ public class DocumentSearchService {
 //        System.out.println("Displayable Columns for docId=" + docId);
 //        displayCols.forEach((k, v) -> System.out.println("   " + k + " -> " + v));
 
-        String rawBaseSql = !doc.getListOfRecordsSql().isBlank()
-                ? cleanSql(doc.getListOfRecordsSql())
-                : "SELECT * FROM " + doc.getMainTableName();
+        String rawBaseSql = (null == doc.getListOfRecordsSql() || doc.getListOfRecordsSql().isBlank())
+                ? "SELECT * FROM " + doc.getMainTableName()
+                : cleanSql(doc.getListOfRecordsSql());
 
         String baseSql = "SELECT * FROM (" + rawBaseSql + ") BASE";
 
